@@ -1,0 +1,1 @@
+-keep class il.co.aniparve.** extends android.content.BroadcastReceiver { *; }
