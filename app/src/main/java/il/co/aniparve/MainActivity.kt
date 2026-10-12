@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
   val dlg=AlertDialog.Builder(this).setTitle(if(type=="meat")"אכלתי בשרי" else "אכלתי חלבי").setView(box).setNegativeButton("ביטול",null).setPositiveButton("התחל",null).create()
   dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
    val n=name.text.toString().trim().ifBlank{person?.name?:"אני"};val dur=(if(type=="meat")person?.meatWait else person?.dairyWait)?:TimerStore.duration(this,type)
-   if(elapsed>=dur){Toast.makeText(this,"כבר עברו "+durationText((dur/3600000).toInt(),((dur%3600000)/60000).toInt())+", אתה פרווה",Toast.LENGTH_LONG).show();dlg.dismiss();return@setOnClickListener}
+   if(elapsed>=dur){Toast.makeText(this,"כבר עברו יותר מ-"+durationText((dur/3600000).toInt(),((dur%3600000)/60000).toInt())+", אתה פרווה",Toast.LENGTH_LONG).show();dlg.dismiss();return@setOnClickListener}
    if(TimerStore.all(this).count{it.status=="active"}>=10){Toast.makeText(this,"אפשר להפעיל עד 10 טיימרים במקביל",Toast.LENGTH_SHORT).show();dlg.dismiss();return@setOnClickListener}
    val now=System.currentTimeMillis();val st=now-elapsed;val t=ParveTimer(TimerStore.newId(this),n,type,st,st+dur,dur,"active",if(elapsed>0)st else 0L)
    TimerStore.add(this,t);TimerScheduler.schedule(this,t);p.edit().putLong("end",t.endAt).putLong("duration",t.duration).putString("food",type).putBoolean("finished",false).apply()
@@ -134,7 +134,7 @@ class MainActivity : AppCompatActivity() {
   bar=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progressTintList=android.content.res.ColorStateList.valueOf(accent);progressBackgroundTintList=android.content.res.ColorStateList.valueOf(if(dark)c("#45362B") else c("#F0E3D5"))}
   r.addView(bar,LinearLayout.LayoutParams(-1,dp(10)).apply{topMargin=dp(14)})
   pct=TextView(this).apply{textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(accent);gravity=Gravity.CENTER;setPadding(0,dp(12),0,dp(8))};r.addView(pct)
-  val endLabel=TextView(this).apply{text=(active.firstOrNull()?.let{if(it.name=="אני")endPhrase(it.endAt) else it.name+" פרווה "+endPhrase(it.endAt).removePrefix("אהיה פרווה ")}?:"");textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))};r.addView(endLabel)
+  val endLabel=TextView(this).apply{text=(active.firstOrNull()?.let{if(it.name=="אני")endPhrase(it.endAt) else it.name+" פרווה "+endPhrase(it.endAt).removePrefix("אהיה פרווה ")}?:"");textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))};r.addView(endLabel);active.firstOrNull()?.takeIf{it.ateAt>0}?.let{label(r,"אכלתי בשעה "+DateFormat.getTimeFormat(this).format(java.util.Date(it.ateAt)),12f,muted)}
   r.addView(outlineButton("עצור",red){val d=AlertDialog.Builder(this).setTitle("עצירת הטיימר").setMessage("להפסיק את הטיימר של "+(TimerStore.all(this).filter{it.status=="active"}.minByOrNull{it.endAt}?.name?:"אני")+"?").setNegativeButton("לא",null).setPositiveButton("כן"){_,_->cancel();screen="home";draw()}.create();d.setOnShowListener{d.getButton(-1)?.setTextColor(red);d.getButton(-2)?.setTextColor(ink)};d.show()},LinearLayout.LayoutParams(-1,dp(54)))
   startTick()
  }
@@ -155,15 +155,21 @@ class MainActivity : AppCompatActivity() {
    row.addView(TextView(this@MainActivity).apply{text=leftText(t.endAt);tag="left_"+t.id;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
    addView(row)
    val pct=((System.currentTimeMillis()-t.startAt).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100)
-   val bar=ProgressBar(this@MainActivity,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=pct;progressTintList=android.content.res.ColorStateList.valueOf(if(t.type=="meat")red else blue)}
+   val bar=ProgressBar(this@MainActivity,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=pct;tag="bar_"+t.id;progressTintList=android.content.res.ColorStateList.valueOf(if(t.type=="meat")red else blue)}
    addView(bar,LinearLayout.LayoutParams(-1,dp(8)).apply{topMargin=dp(8)})
-   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "));textSize=12f;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
+   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "));textSize=12f;tag="pct_"+t.id;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
    if(t.ateAt>0)addView(TextView(this@MainActivity).apply{text="אכלתי בשעה "+DateFormat.getTimeFormat(this@MainActivity).format(java.util.Date(t.ateAt));textSize=11f;setTextColor(muted)})
    addView(outlineButton("עצור",red){confirmStop(t)},LinearLayout.LayoutParams(-1,dp(42)))
   }}
   space(r,16);r.addView(primaryButton("+ טיימר נוסף"){screen="home";draw()},LinearLayout.LayoutParams(-1,dp(52)))
   uiTick?.let{uiHandler.removeCallbacks(it)}
-  val task=object:Runnable{override fun run(){if(screen!="timer")return;active.forEach{t->val v=findViewWithTag<TextView>("left_"+t.id);if(v!=null)v.text=leftText(t.endAt)};uiHandler.postDelayed(this,1000)}}
+  val task=object:Runnable{override fun run(){if(screen!="timer")return
+   val now=System.currentTimeMillis()
+   val ended=active.filter{it.endAt<=now}
+   if(ended.isNotEmpty()){ended.forEach{TimerStore.pending(this@MainActivity,it.id)?.let{done->TimerScheduler.cancel(this@MainActivity,done.id);TimerNotifications.done(this@MainActivity,done)}};TimerNotifications.refresh(this@MainActivity);il.co.aniparve.widget.WidgetUpdater.updateAll(this@MainActivity);screen=if(TimerStore.all(this@MainActivity).any{it.status=="pending"})"done" else if(TimerStore.all(this@MainActivity).any{it.status=="active"})"timer" else "home";draw();return}
+   active.forEach{t->val v=findViewWithTag<TextView>("left_"+t.id);if(v!=null)v.text=leftText(t.endAt);val progress=((now-t.startAt).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100);findViewWithTag<ProgressBar>("bar_"+t.id)?.progress=progress;findViewWithTag<TextView>("pct_"+t.id)?.text=progress.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "))}
+   uiHandler.postDelayed(this,1000)
+  }}
   uiTick=task;uiHandler.postDelayed(task,1000)
  }
  private fun leftText(end:Long):String{val ms=(end-System.currentTimeMillis()).coerceAtLeast(0L);return String.format(Locale.getDefault(),"%02d:%02d:%02d",TimeUnit.MILLISECONDS.toHours(ms),TimeUnit.MILLISECONDS.toMinutes(ms)%60,TimeUnit.MILLISECONDS.toSeconds(ms)%60)}
