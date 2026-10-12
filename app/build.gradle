@@ -9,6 +9,7 @@ android {
     signingConfigs {
         release {
             storeFile file("ani-parve-release.jks")
+            storeType "JKS"
             storePassword System.getenv("ANI_PARVE_STORE_PASSWORD") ?: "AniParveRelease2026"
             keyAlias "aniparve"
             keyPassword System.getenv("ANI_PARVE_KEY_PASSWORD") ?: "AniParveRelease2026"
