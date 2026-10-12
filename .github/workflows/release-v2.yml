@@ -1,0 +1,52 @@
+name: Build and release אני פרווה 2.0
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare signing key and launcher icons
+        run: |
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable app/src/main/res/drawable-nodpi
+          cp signing/ani-parve-release.jks app/ani-parve-release.jks
+          cp signing/ic_launcher_foreground.png app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher.jpg
+            cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher_round.jpg
+          done
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Build release APK and lint
+        env:
+          ANI_PARVE_STORE_PASSWORD: AniParveRelease2026
+          ANI_PARVE_KEY_PASSWORD: AniParveRelease2026
+        run: gradle assembleRelease lintRelease --no-daemon
+      - name: Verify APK
+        run: |
+          test -s app/build/outputs/apk/release/app-release.apk
+          cp app/build/outputs/apk/release/app-release.apk ani-parve-v2.0.0.apk
+          file ani-parve-v2.0.0.apk
+          sha256sum ani-parve-v2.0.0.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ani-parve-v2.0.0
+          path: ani-parve-v2.0.0.apk
+          retention-days: 90
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.0.0
+          name: אני פרווה 2.0
+          files: ani-parve-v2.0.0.apk
+          body: "מה חדש: טיימרים מרובים, שמות וזמנים אישיים, שעת סיום, התחלה בדיעבד, וידג׳ט ומסך הסבר."
+          generate_release_notes: false
