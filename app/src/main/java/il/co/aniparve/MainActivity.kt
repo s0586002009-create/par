@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.*
 import android.provider.Settings
 import android.view.*
+import android.text.format.DateFormat
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -167,7 +168,7 @@ class MainActivity : AppCompatActivity() {
  }
  private fun leftText(end:Long):String{val ms=(end-System.currentTimeMillis()).coerceAtLeast(0L);return String.format(Locale.getDefault(),"%02d:%02d:%02d",TimeUnit.MILLISECONDS.toHours(ms),TimeUnit.MILLISECONDS.toMinutes(ms)%60,TimeUnit.MILLISECONDS.toSeconds(ms)%60)}
  private fun endPhrase(end:Long):String{val now=java.util.Date();val date=java.util.Date(end);val f=java.text.SimpleDateFormat("yyyyMMdd",Locale.getDefault());val day=when{f.format(now)==f.format(date)->"";f.format(java.util.Date(now.time+86400000L))==f.format(date)->"מחר ";else->"ביום "+java.text.SimpleDateFormat("EEEE",Locale.getDefault()).format(date)+" "};return (if(day.isBlank())"אהיה פרווה " else day+"אהיה פרווה ")+"בשעה "+DateFormat.getTimeFormat(this).format(date)}
- private fun findViewWithTag<T:View>(tag:Any):T?{fun find(v:View):View?{if(v.tag==tag)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};return find(window.decorView) as? T}
+ private fun <T:View> findViewWithTag(tag:Any):T?{fun find(v:View):View?{if(v.tag==tag)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};return find(window.decorView) as? T}
  private fun confirmStop(t:ParveTimer){AlertDialog.Builder(this).setTitle("עצירת טיימר").setMessage("להפסיק את הטיימר של "+t.name+"?").setNegativeButton("לא",null).setPositiveButton("עצור"){_,_->TimerScheduler.cancel(this,t.id);TimerStore.remove(this,t.id);TimerNotifications.refresh(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this);screen=if(TimerStore.all(this).any{it.status=="active"})"timer" else if(TimerStore.all(this).any{it.status=="pending"})"done" else "home";draw()}.show()}
  private fun doneScreen(){val r=root();toolbar(r,"הסתיים");space(r,20);label(r,"זמן ההמתנה הסתיים",24f,ink,true)
   val pending=TimerStore.all(this).filter{it.status=="pending"}.sortedBy{it.endAt}
