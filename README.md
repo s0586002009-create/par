@@ -14,3 +14,5 @@
 
 ## מצב בנייה
 GitHub Actions בונה APK בכל push וגם בהפעלה ידנית (workflow_dispatch). הקובץ מצורף ל-Artifacts ול-Releases כאשר הבנייה והפרסום מסתיימים בהצלחה.
+
+<!-- v2 feature branch -->
