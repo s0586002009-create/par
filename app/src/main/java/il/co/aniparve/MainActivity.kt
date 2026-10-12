@@ -157,7 +157,7 @@ class MainActivity : AppCompatActivity() {
    val pct=((System.currentTimeMillis()-t.startAt).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100)
    val bar=ProgressBar(this@MainActivity,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=pct;tag="bar_"+t.id;progressTintList=android.content.res.ColorStateList.valueOf(if(t.type=="meat")red else blue)}
    addView(bar,LinearLayout.LayoutParams(-1,dp(8)).apply{topMargin=dp(8)})
-   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "));textSize=12f;tag="pct_"+t.id;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
+   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).replace("אהיה פרווה ",""));textSize=12f;tag="pct_"+t.id;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
    if(t.ateAt>0)addView(TextView(this@MainActivity).apply{text="אכלתי בשעה "+DateFormat.getTimeFormat(this@MainActivity).format(java.util.Date(t.ateAt));textSize=11f;setTextColor(muted)})
    addView(outlineButton("עצור",red){confirmStop(t)},LinearLayout.LayoutParams(-1,dp(42)))
   }}
@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity() {
    val now=System.currentTimeMillis()
    val ended=active.filter{it.endAt<=now}
    if(ended.isNotEmpty()){ended.forEach{TimerStore.pending(this@MainActivity,it.id)?.let{done->TimerScheduler.cancel(this@MainActivity,done.id);TimerNotifications.done(this@MainActivity,done)}};TimerNotifications.refresh(this@MainActivity);il.co.aniparve.widget.WidgetUpdater.updateAll(this@MainActivity);screen=if(TimerStore.all(this@MainActivity).any{it.status=="pending"})"done" else if(TimerStore.all(this@MainActivity).any{it.status=="active"})"timer" else "home";draw();return}
-   active.forEach{t->val v=findViewWithTag<TextView>("left_"+t.id);if(v!=null)v.text=leftText(t.endAt);val progress=((now-t.startAt).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100);findViewWithTag<ProgressBar>("bar_"+t.id)?.progress=progress;findViewWithTag<TextView>("pct_"+t.id)?.text=progress.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "))}
+   active.forEach{t->val v=findViewWithTag<TextView>("left_"+t.id);if(v!=null)v.text=leftText(t.endAt);val progress=((now-t.startAt).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100);findViewWithTag<ProgressBar>("bar_"+t.id)?.progress=progress;findViewWithTag<TextView>("pct_"+t.id)?.text=progress.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).replace("אהיה פרווה ",""))}
    uiHandler.postDelayed(this,1000)
   }}
   uiTick=task;uiHandler.postDelayed(task,1000)
