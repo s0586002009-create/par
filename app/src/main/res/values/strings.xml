@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?><resources>
 <string name="app_name">אני פרווה</string><string name="widget_description">טיימר ההמתנה בין בשרי לחלבי</string>
-<string name="help_start_title">התחלת טיימר</string><string name="help_start_body">אחרי שאכלתם, לחצו על 'בשרי' או 'חלבי'. אפשר לבחור שם ולהתחיל.</string>
-<string name="help_forgot_title">אכלתי לפני זמן</string><string name="help_forgot_body">שכחתם להפעיל? בחרו 'התחלתי לפני...' והטיימר יחושב משעת האכילה האמיתית.</string>
-<string name="help_multi_title">כמה טיימרים</string><string name="help_multi_body">אפשר להפעיל כמה טיימרים בו-זמנית, לכל אחד שם משלו. לחצו על '+ טיימר נוסף'.</string>
+<string name="help_start_title">התחלת טיימר</string><string name="help_start_body">אחרי שאכלתם, לחצו על \'בשרי\' או \'חלבי\'. אפשר לבחור שם ולהתחיל.</string>
+<string name="help_forgot_title">אכלתי לפני זמן</string><string name="help_forgot_body">שכחתם להפעיל? בחרו \'התחלתי לפני...\' והטיימר יחושב משעת האכילה האמיתית.</string>
+<string name="help_multi_title">כמה טיימרים</string><string name="help_multi_body">אפשר להפעיל כמה טיימרים בו-זמנית, לכל אחד שם משלו. לחצו על \'+ טיימר נוסף\'.</string>
 <string name="help_end_title">שעת סיום</string><string name="help_end_body">בכל טיימר מוצגת השעה שבה תהיו פרווה.</string>
 <string name="help_people_title">אנשים</string><string name="help_people_body">בהגדרות אפשר לשמור שמות קבועים של בני משפחה, ולהגדיר לכל אחד זמני המתנה משלו.</string>
 <string name="help_wait_title">זמני המתנה</string><string name="help_wait_body">בהגדרות בוחרים את זמן ההמתנה בין בשרי לחלבי ובין חלבי לבשרי. ברירת המחדל היא 6 שעות. את הזמן המתאים לכם קובעים לפי המנהג שלכם.</string>
-<string name="help_stop_title">עצירה</string><string name="help_stop_body">לחצו 'עצור' כדי לבטל טיימר.</string>
+<string name="help_stop_title">עצירה</string><string name="help_stop_body">לחצו \'עצור\' כדי לבטל טיימר.</string>
 <string name="help_notifications_title">התראות</string><string name="help_notifications_body">האפליקציה מתריעה כשהזמן נגמר, גם כשהיא סגורה. בהגדרות אפשר לבחור צליל, רטט והתראה קבועה עם הזמן שנותר.</string>
-<string name="help_widget_title">וידג'ט</string><string name="help_widget_body">אפשר להוסיף וידג'ט למסך הבית ולראות את הזמן שנותר בלי לפתוח את האפליקציה.</string>
-<string name="help_delay_title">אם ההתראות מתעכבות</string><string name="help_delay_body">ודאו שהאפליקציה קיבלה הרשאת התראות, התראות מדויקות והחרגה מחיסכון בסוללה (בהגדרות, 'הרשאות ואמינות').</string>
+<string name="help_widget_title">וידג\'ט</string><string name="help_widget_body">אפשר להוסיף וידג\'ט למסך הבית ולראות את הזמן שנותר בלי לפתוח את האפליקציה.</string>
+<string name="help_delay_title">אם ההתראות מתעכבות</string><string name="help_delay_body">ודאו שהאפליקציה קיבלה הרשאת התראות, התראות מדויקות והחרגה מחיסכון בסוללה (בהגדרות, \'הרשאות ואמינות\').</string>
 <string name="help_disclaimer">האפליקציה היא כלי עזר לספירת זמן בלבד. להלכה למעשה יש לשאול רב.</string></resources>
