@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
  }
  private fun panel(r:LinearLayout,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(16),dp(14),dp(16),dp(14));content()};r.addView(box,LinearLayout.LayoutParams(-1,-2))}
  private fun startDialog(type:String){
-  val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(8),dp(18),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(8),dp(18),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL;background=solid(card,24)}
   val name=EditText(this).apply{hint="שם אחר (לא חובה)";setSingleLine(true)}
   box.addView(name,LinearLayout.LayoutParams(-1,dp(48)))
   val people=TimerStore.people(this);var person:ParvePerson?=null
@@ -96,11 +96,15 @@ class MainActivity : AppCompatActivity() {
   val opts=listOf("עכשיו" to 0L,"15 דקות" to 15L,"30 דקות" to 30L,"שעה" to 60L,"שעה וחצי" to 90L,"שעתיים" to 120L)
   var elapsed=0L
   val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
-  opts.forEach{(title,mins)->row.addView(outlineButton(title,copper){elapsed=mins*60000L},LinearLayout.LayoutParams(-2,dp(38)).apply{marginEnd=dp(4)})}
-  val other=outlineButton("אחר",copper){val h=NumberPicker(this).apply{minValue=0;maxValue=12};val m=NumberPicker(this).apply{minValue=0;maxValue=59};val w=LinearLayout(this).apply{addView(h);addView(m)};AlertDialog.Builder(this).setTitle("כמה זמן עבר?").setView(w).setPositiveButton("אישור"){_,_->elapsed=(h.value*60L+m.value)*60000L}.setNegativeButton("ביטול",null).show()}
+  val elapsedChips=mutableListOf<TextView>()
+  fun resetElapsedChip(v:TextView){v.setTextColor(copper);v.background=GradientDrawable().apply{cornerRadius=dp(20).toFloat();setColor(card);setStroke(dp(1),copper)}}
+  fun selectElapsedChip(v:TextView){elapsedChips.forEach{resetElapsedChip(it)};v.setTextColor(Color.WHITE);v.background=solid(copper,18)}
+  opts.forEach{(title,mins)->lateinit var chip:TextView;chip=outlineButton(title,copper){elapsed=mins*60000L;selectElapsedChip(chip)};elapsedChips.add(chip);row.addView(chip,LinearLayout.LayoutParams(-2,dp(38)).apply{marginEnd=dp(4)});if(mins==0L)selectElapsedChip(chip)}
+  lateinit var other:TextView
+  other=outlineButton("אחר",copper){val h=NumberPicker(this).apply{minValue=0;maxValue=12};val m=NumberPicker(this).apply{minValue=0;maxValue=if(h.value>=12)0 else 59};h.setOnValueChangedListener{_,_,v->m.maxValue=if(v>=12)0 else 59;if(m.value>m.maxValue)m.value=m.maxValue};val w=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_LTR;addView(h);addView(m)};AlertDialog.Builder(this).setTitle("כמה זמן עבר?").setView(w).setPositiveButton("אישור"){_,_->elapsed=(h.value*60L+m.value)*60000L;elapsedChips.forEach{resetElapsedChip(it)};selectElapsedChip(other)}.setNegativeButton("ביטול",null).show()}
   row.addView(other);box.addView(HorizontalScrollView(this).apply{isHorizontalScrollBarEnabled=false;addView(row)},LinearLayout.LayoutParams(-1,dp(46)))
   val dlg=AlertDialog.Builder(this).setTitle(if(type=="meat")"אכלתי בשרי" else "אכלתי חלבי").setView(box).setNegativeButton("ביטול",null).setPositiveButton("התחל",null).create()
-  dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
+  dlg.setOnShowListener{dlg.window?.setGravity(Gravity.BOTTOM);dlg.window?.setLayout(-1,-2);dlg.window?.setDimAmount(0.35f);dlg.window?.setBackgroundDrawable(solid(card,24));dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
    val n=name.text.toString().trim().ifBlank{person?.name?:"אני"};val dur=(if(type=="meat")person?.meatWait else person?.dairyWait)?:TimerStore.duration(this,type)
    if(elapsed>=dur){Toast.makeText(this,"כבר עברו יותר מ-"+durationText((dur/3600000).toInt(),((dur%3600000)/60000).toInt())+", אתה פרווה",Toast.LENGTH_LONG).show();dlg.dismiss();return@setOnClickListener}
    if(TimerStore.all(this).count{it.status=="active"}>=10){Toast.makeText(this,"אפשר להפעיל עד 10 טיימרים במקביל",Toast.LENGTH_SHORT).show();dlg.dismiss();return@setOnClickListener}
