@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
  private fun space(parent:LinearLayout,n:Int){parent.addView(Space(this),LinearLayout.LayoutParams(1,dp(n)))}
  private fun label(parent:LinearLayout,s:String,size:Float,color:Int,bold:Boolean=false,gravity:Int=Gravity.CENTER){parent.addView(TextView(this).apply{text=s;textSize=size;setTextColor(color);this.gravity=gravity;typeface=if(bold)Typeface.create("sans-serif-medium",Typeface.BOLD) else Typeface.create("sans-serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,-2))}
  private fun toolbar(r:LinearLayout,title:String?=null){val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR}
-  val isSettings=title=="הגדרות";row.addView(iconBtn(if(isSettings)"‹" else "⚙",if(isSettings)"חזרה" else "הגדרות"){if(isSettings){screen=if(p.getBoolean("finished",false))"done" else if(p.getLong("end",0)>System.currentTimeMillis())"timer" else "home";draw()}else{screen="settings";draw()}},LinearLayout.LayoutParams(dp(48),dp(48)))
+  val isSettings=title=="הגדרות";row.addView(iconBtn(if(isSettings)"‹" else "⚙",if(isSettings)"חזרה" else "הגדרות"){if(isSettings){screen=when{TimerStore.all(this).any{it.status=="pending"}->"done";TimerStore.all(this).any{it.status=="active"}->"timer";else->"home"};draw()}else{screen="settings";draw()}},LinearLayout.LayoutParams(dp(48),dp(48)))
   val brand=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_RTL}
   brand.addView(ImageView(this).apply{try{setImageResource(R.mipmap.ic_launcher)}catch(_:Exception){};scaleType=ImageView.ScaleType.FIT_CENTER},LinearLayout.LayoutParams(dp(34),dp(34)).apply{marginStart=dp(7)})
   brand.addView(TextView(this).apply{text=title?:"אני פרווה";textSize=19f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER_VERTICAL})
@@ -116,13 +116,44 @@ class MainActivity : AppCompatActivity() {
    else {val person=people[which];AlertDialog.Builder(this).setTitle(person.name).setItems(arrayOf("עריכה","מחיקה")){_,action->if(action==0)editPerson(person)else AlertDialog.Builder(this).setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this,TimerStore.people(this).filterNot{it.name==person.name});settings()}.show()}.show()}
   }.setNegativeButton("סגירה",null).show()
  }
- private fun editPerson(old:ParvePerson?){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(6),dp(18),dp(4))};val name=EditText(this).apply{hint="שם";setSingleLine(true);setText(old?.name?:"")};box.addView(name)
-  val sw=SwitchCompat(this).apply{text="זמנים אישיים";isChecked=old?.meatWait!=null||old?.dairyWait!=null};box.addView(sw)
-  val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;visibility=if(sw.isChecked)View.VISIBLE else View.GONE}
-  fun pick(v:Long)=NumberPicker(this).apply{minValue=0;maxValue=360;value=(v/60000).toInt().coerceIn(0,360);setFormatter{String.format(Locale.getDefault(),"%02d:%02d",it/60,it%60)}}
-  val meat=pick(old?.meatWait?:TimerStore.duration(this,"meat"));val dairy=pick(old?.dairyWait?:TimerStore.duration(this,"dairy"))
-  row.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;addView(TextView(this@MainActivity).apply{text="בשרי ← חלבי";setTextColor(ink)});addView(meat)});row.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;addView(TextView(this@MainActivity).apply{text="חלבי ← בשרי";setTextColor(ink)});addView(dairy)});box.addView(row);sw.setOnCheckedChangeListener{_,v->row.visibility=if(v)View.VISIBLE else View.GONE}
-  AlertDialog.Builder(this).setTitle(if(old==null)"הוספת שם" else "עריכת שם").setView(box).setNegativeButton("ביטול",null).setPositiveButton("שמירה"){_,_->val n=name.text.toString().trim();if(n.isBlank())return@setPositiveButton;val list=TimerStore.people(this).filterNot{it.name==old?.name}.toMutableList();if(list.any{it.name.equals(n,true)}||list.size>=15&&old==null){Toast.makeText(this,"שם כפול או שהגעתם למגבלה",Toast.LENGTH_SHORT).show();return@setPositiveButton};list.add(ParvePerson(n,if(sw.isChecked)meat.value*60000L else null,if(sw.isChecked)dairy.value*60000L else null));TimerStore.savePeople(this,list);settings()}.show()
+ private fun editPerson(old:ParvePerson?){
+  val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(6),dp(18),dp(4))}
+  val name=EditText(this).apply{hint="שם";setSingleLine(true);setText(old?.name?:"")}
+  box.addView(name)
+  val sw=SwitchCompat(this).apply{text="זמנים אישיים";isChecked=old?.meatWait!=null||old?.dairyWait!=null}
+  box.addView(sw)
+  val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;visibility=if(sw.isChecked)View.VISIBLE else View.GONE}
+  fun makeWheels(total:Long):Pair<NumberPicker,NumberPicker>{
+   val minutesTotal=(total/60000L).coerceIn(0L,360L)
+   val h=NumberPicker(this).apply{minValue=0;maxValue=6;value=(minutesTotal/60L).toInt().coerceIn(0,6);wrapSelectorWheel=false;descendantFocusability=ViewGroup.FOCUS_BLOCK_DESCENDANTS}
+   val m=NumberPicker(this).apply{minValue=0;maxValue=if(h.value>=6)0 else 59;value=(minutesTotal%60L).toInt().coerceAtMost(maxValue);wrapSelectorWheel=false;descendantFocusability=ViewGroup.FOCUS_BLOCK_DESCENDANTS}
+   h.setOnValueChangedListener{_,_,v->m.maxValue=if(v>=6)0 else 59;if(m.value>m.maxValue)m.value=m.maxValue}
+   return Pair(h,m)
+  }
+  val (meatH,meatM)=makeWheels(old?.meatWait?:TimerStore.duration(this,"meat"))
+  val (dairyH,dairyM)=makeWheels(old?.dairyWait?:TimerStore.duration(this,"dairy"))
+  fun group(title:String,h: NumberPicker,m:NumberPicker)=LinearLayout(this).apply{
+   orientation=LinearLayout.VERTICAL
+   addView(TextView(this@MainActivity).apply{text=title;textSize=12f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER})
+   val wheels=LinearLayout(this@MainActivity).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
+   wheels.addView(h,LinearLayout.LayoutParams(dp(46),dp(88)))
+   wheels.addView(m,LinearLayout.LayoutParams(dp(46),dp(88)))
+   addView(wheels)
+   addView(TextView(this@MainActivity).apply{text="שעות          דקות";textSize=10f;setTextColor(muted);gravity=Gravity.CENTER})
+  }
+  row.addView(group("בשרי ← חלבי",meatH,meatM),LinearLayout.LayoutParams(0,-2,1f))
+  row.addView(group("חלבי ← בשרי",dairyH,dairyM),LinearLayout.LayoutParams(0,-2,1f))
+  box.addView(row)
+  sw.setOnCheckedChangeListener{_,v->row.visibility=if(v)View.VISIBLE else View.GONE}
+  AlertDialog.Builder(this).setTitle(if(old==null)"הוספת שם" else "עריכת שם").setView(box).setNegativeButton("ביטול",null).setPositiveButton("שמירה"){_,_->
+   val n=name.text.toString().trim()
+   if(n.isBlank()){Toast.makeText(this,"יש להזין שם",Toast.LENGTH_SHORT).show();return@setPositiveButton}
+   val list=TimerStore.people(this).filterNot{it.name==old?.name}.toMutableList()
+   if(list.any{it.name.equals(n,true)}||list.size>=15&&old==null){Toast.makeText(this,"שם כפול או שהגעתם למגבלה",Toast.LENGTH_SHORT).show();return@setPositiveButton}
+   val meat=if(sw.isChecked)(meatH.value*60L+meatM.value)*60000L else null
+   val dairy=if(sw.isChecked)(dairyH.value*60L+dairyM.value)*60000L else null
+   list.add(ParvePerson(n,meat,dairy));TimerStore.savePeople(this,list);settings()
+  }.show()
  }
  private fun pinWidget(){if(Build.VERSION.SDK_INT>=26){val m=AppWidgetManager.getInstance(this);if(m.isRequestPinAppWidgetSupported){m.requestPinAppWidget(ComponentName(this,il.co.aniparve.widget.TimerWidgetProvider::class.java),null,null);return}};AlertDialog.Builder(this).setTitle("הוספת וידג'ט").setMessage("לחצו לחיצה ארוכה על מסך הבית ← וידג'טים ← אני פרווה").setPositiveButton("הבנתי",null).show()}
  private fun helpScreen(){val r=root();toolbar(r,"איך זה עובד");val items=listOf(R.string.help_start_title to R.string.help_start_body,R.string.help_forgot_title to R.string.help_forgot_body,R.string.help_multi_title to R.string.help_multi_body,R.string.help_end_title to R.string.help_end_body,R.string.help_people_title to R.string.help_people_body,R.string.help_wait_title to R.string.help_wait_body,R.string.help_stop_title to R.string.help_stop_body,R.string.help_notifications_title to R.string.help_notifications_body,R.string.help_widget_title to R.string.help_widget_body,R.string.help_delay_title to R.string.help_delay_body);items.forEach{(a,b)->space(r,8);panel(r){addView(TextView(this@MainActivity).apply{text=getString(a);textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)});addView(TextView(this@MainActivity).apply{text=getString(b);textSize=13f;setTextColor(ink);setPadding(0,dp(5),0,0)})}};space(r,12);label(r,getString(R.string.help_disclaimer),11f,muted)}
@@ -136,6 +167,7 @@ class MainActivity : AppCompatActivity() {
   pct=TextView(this).apply{textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(accent);gravity=Gravity.CENTER;setPadding(0,dp(12),0,dp(8))};r.addView(pct)
   val endLabel=TextView(this).apply{text=(active.firstOrNull()?.let{if(it.name=="אני")endPhrase(it.endAt) else it.name+" פרווה "+endPhrase(it.endAt).removePrefix("אהיה פרווה ")}?:"");textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))};r.addView(endLabel);active.firstOrNull()?.takeIf{it.ateAt>0}?.let{label(r,"אכלתי בשעה "+DateFormat.getTimeFormat(this).format(java.util.Date(it.ateAt)),12f,muted)}
   r.addView(outlineButton("עצור",red){val d=AlertDialog.Builder(this).setTitle("עצירת הטיימר").setMessage("להפסיק את הטיימר של "+(TimerStore.all(this).filter{it.status=="active"}.minByOrNull{it.endAt}?.name?:"אני")+"?").setNegativeButton("לא",null).setPositiveButton("כן"){_,_->cancel();screen="home";draw()}.create();d.setOnShowListener{d.getButton(-1)?.setTextColor(red);d.getButton(-2)?.setTextColor(ink)};d.show()},LinearLayout.LayoutParams(-1,dp(54)))
+  space(r,10);r.addView(primaryButton("+ טיימר נוסף"){screen="home";draw()},LinearLayout.LayoutParams(-1,dp(52)))
   startTick()
  }
  private fun startTick(){val end=p.getLong("end",0);val duration=p.getLong("duration",1).coerceAtLeast(1)
@@ -203,13 +235,13 @@ class MainActivity : AppCompatActivity() {
   box.addView(TextView(this).apply{text=title;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});space(box,10)
   val wheels=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
   fun picker(max:Int,value:Int)=NumberPicker(this).apply{minValue=0;maxValue=max;this.value=value;setFormatter{v->String.format(Locale.US,"%02d",v)};wrapSelectorWheel=true;descendantFocusability=NumberPicker.FOCUS_BLOCK_DESCENDANTS;}
-  val hours=picker(6,p.getInt(key+"_h",6));val minutes=picker(59,p.getInt(key+"_m",0))
+  val hours=picker(6,p.getInt(key+"_h",6));val minutes=picker(if(hours.value>=6)0 else 59,p.getInt(key+"_m",0).coerceAtMost(if(hours.value>=6)0 else 59))
   val hourCol=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;addView(hours,LinearLayout.LayoutParams(dp(84),dp(100)));addView(TextView(this@MainActivity).apply{text="שעות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
   val minCol=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;addView(minutes,LinearLayout.LayoutParams(dp(84),dp(100)));addView(TextView(this@MainActivity).apply{text="דקות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
   wheels.addView(hourCol);wheels.addView(TextView(this).apply{text=":";textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))},LinearLayout.LayoutParams(dp(28),dp(100)));wheels.addView(minCol);box.addView(wheels,LinearLayout.LayoutParams(-1,-2))
   val summary=TextView(this).apply{text=durationText(hours.value,minutes.value);textSize=12f;setTextColor(muted);gravity=Gravity.CENTER;setPadding(0,dp(8),0,0)}
   fun update(){summary.text=durationText(hours.value,minutes.value)}
-  hours.setOnValueChangedListener{_,_,v->p.edit().putInt(key+"_h",v).apply();update()};minutes.setOnValueChangedListener{_,_,v->p.edit().putInt(key+"_m",v).apply();update()};box.addView(summary);parent.addView(box,LinearLayout.LayoutParams(-1,-2))
+  hours.setOnValueChangedListener{_,_,v->minutes.maxValue=if(v>=6)0 else 59;if(minutes.value>minutes.maxValue)minutes.value=minutes.maxValue;p.edit().putInt(key+"_h",v).putInt(key+"_m",minutes.value).apply();update()};minutes.setOnValueChangedListener{_,_,v->p.edit().putInt(key+"_m",v).apply();update()};box.addView(summary);parent.addView(box,LinearLayout.LayoutParams(-1,-2))
  }
  private fun switchRow(parent:LinearLayout,g:String,title:String,sub:String,key:String,def:Boolean){val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(10),0,dp(10))}
   row.addView(TextView(this).apply{text=g;textSize=23f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(40),dp(44)))
