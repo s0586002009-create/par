@@ -5,7 +5,7 @@ import android.content.*
 import android.os.*
 import android.widget.RemoteViews
 import il.co.aniparve.*
-import java.text.DateFormat
+import android.text.format.DateFormat
 import java.util.Date
 import java.util.concurrent.TimeUnit
 class TimerWidgetProvider:AppWidgetProvider(){
