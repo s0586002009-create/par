@@ -38,6 +38,8 @@ class MainActivity : AppCompatActivity() {
   screen=when{intent.getBooleanExtra("show_timers",false)->"timer";TimerStore.all(this).any{it.status=="pending"}->"done";TimerStore.all(this).any{it.status=="active"}->"timer";p.getBoolean("finished",false)->"done";else->"home"}
   if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)permissionScreen() else {draw();if(intent.getBooleanExtra("open_start_sheet",false))window.decorView.post{startDialog(intent.getStringExtra("start_type")?:"meat")};if(!p.getBoolean("welcome_shown",false)){p.edit().putBoolean("welcome_shown",true).apply();AlertDialog.Builder(this).setTitle("ברוכים הבאים").setMessage("אני פרווה עוזרת לעקוב אחרי זמן ההמתנה.").setPositiveButton("הבנתי",null).setNeutralButton("איך זה עובד"){_,_->helpScreen()}.show()}}
  }
+ override fun onPause(){super.onPause();uiTick?.let{uiHandler.removeCallbacks(it)};tick?.cancel()}
+ override fun onResume(){super.onResume();if(screen=="timer")draw()}
  private fun applyTheme(){AppCompatDelegate.setDefaultNightMode(when(p.getString("theme","system")){"light"->AppCompatDelegate.MODE_NIGHT_NO;"dark"->AppCompatDelegate.MODE_NIGHT_YES;else->AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM})}
  private fun channel(){if(Build.VERSION.SDK_INT>=26){val id="parve_"+p.getString("sound","default");val ch=NotificationChannel(id,"אני פרווה",NotificationManager.IMPORTANCE_HIGH);ch.enableVibration(p.getBoolean("vibrate",true));if(p.getString("sound","default")=="silent")ch.setSound(null,null);getSystemService(NotificationManager::class.java).createNotificationChannel(ch);p.edit().putString("channel",id).apply()}}
  private fun draw(){tick?.cancel();when(screen){"timer"->timerScreen();"done"->doneScreen();"settings"->settings();else->home()}}
@@ -58,7 +60,7 @@ class MainActivity : AppCompatActivity() {
   row.addView(brand,LinearLayout.LayoutParams(0,dp(48),1f));row.addView(Space(this),LinearLayout.LayoutParams(dp(48),dp(48)));r.addView(row,LinearLayout.LayoutParams(-1,dp(52)))
  }
  private fun iconBtn(g:String,desc:String,action:()->Unit)=TextView(this).apply{text=g;contentDescription=desc;textSize=26f;gravity=Gravity.CENTER;setTextColor(ink);background=solid(card,18);elevation=dp(2).toFloat();isClickable=true;setOnClickListener{action()}}.also{}
- private fun home(){val r=root();toolbar(r);space(r,24);label(r,"עכשיו אכלתי",32f,ink,true);space(r,6);label(r,"בחרו כדי להתחיל טיימר",16f,muted);space(r,28)
+ private fun home(){val r=root();toolbar(r);val activeCount=TimerStore.all(this).count{it.status=="active"};if(activeCount>0){space(r,8);r.addView(outlineButton("יש "+activeCount+" טיימרים פעילים  ›",copper){screen="timer";draw()},LinearLayout.LayoutParams(-1,dp(40)))};space(r,24);label(r,"עכשיו אכלתי",32f,ink,true);space(r,6);label(r,"בחרו כדי להתחיל טיימר",16f,muted);space(r,28)
   val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
   row.addView(food("🥩","בשרי","meat"),LinearLayout.LayoutParams(0,dp(228),1f).apply{marginEnd=dp(8)});row.addView(food("🧀","חלבי","dairy"),LinearLayout.LayoutParams(0,dp(228),1f).apply{marginStart=dp(8)});r.addView(row)
   space(r,22);panel(r){orientation=0;gravity=Gravity.CENTER_VERTICAL
@@ -130,7 +132,7 @@ class MainActivity : AppCompatActivity() {
   bar=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progressTintList=android.content.res.ColorStateList.valueOf(accent);progressBackgroundTintList=android.content.res.ColorStateList.valueOf(if(dark)c("#45362B") else c("#F0E3D5"))}
   r.addView(bar,LinearLayout.LayoutParams(-1,dp(10)).apply{topMargin=dp(14)})
   pct=TextView(this).apply{textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(accent);gravity=Gravity.CENTER;setPadding(0,dp(12),0,dp(8))};r.addView(pct)
-  val endLabel=TextView(this).apply{text=(active.firstOrNull()?.let{endPhrase(it.endAt)}?:"");textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))};r.addView(endLabel)
+  val endLabel=TextView(this).apply{text=(active.firstOrNull()?.let{if(it.name=="אני")endPhrase(it.endAt) else it.name+" פרווה "+endPhrase(it.endAt).removePrefix("אהיה פרווה ")}?:"");textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))};r.addView(endLabel)
   r.addView(outlineButton("עצור",red){val d=AlertDialog.Builder(this).setTitle("עצירת הטיימר").setMessage("האם אתם בטוחים שאתם רוצים להפסיק את הטיימר?").setNegativeButton("לא",null).setPositiveButton("כן"){_,_->cancel();screen="home";draw()}.create();d.setOnShowListener{d.getButton(-1)?.setTextColor(red);d.getButton(-2)?.setTextColor(ink)};d.show()},LinearLayout.LayoutParams(-1,dp(54)))
   startTick()
  }
@@ -153,7 +155,7 @@ class MainActivity : AppCompatActivity() {
    val pct=((System.currentTimeMillis()-t.startAt).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100)
    val bar=ProgressBar(this@MainActivity,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=pct;progressTintList=android.content.res.ColorStateList.valueOf(if(t.type=="meat")red else blue)}
    addView(bar,LinearLayout.LayoutParams(-1,dp(8)).apply{topMargin=dp(8)})
-   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% עברו · "+endPhrase(t.endAt);textSize=12f;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
+   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% עברו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "));textSize=12f;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
    if(t.ateAt>0)addView(TextView(this@MainActivity).apply{text="אכלתי בשעה "+DateFormat.getTimeFormat(this@MainActivity).format(java.util.Date(t.ateAt));textSize=11f;setTextColor(muted)})
    addView(outlineButton("עצור",red){confirmStop(t)},LinearLayout.LayoutParams(-1,dp(42)))
   }}
