@@ -2,6 +2,7 @@ package il.co.aniparve
 
 import android.Manifest
 import android.app.*
+import android.appwidget.AppWidgetManager
 import android.content.*
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -34,7 +35,7 @@ class MainActivity : AppCompatActivity() {
  private val muted get()=c(if(dark)"#C7B5A3" else "#8D7766")
  private val copper get()=c("#B26A2B"); private val red get()=c(if(dark)"#F0645D" else "#D9433C"); private val blue get()=c(if(dark)"#80B9EA" else "#4F8BC8")
  override fun onCreate(savedInstanceState:Bundle?){applyTheme();super.onCreate(savedInstanceState);channel()
-  TimerStore.all(this)
+  TimerStore.all(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this)
   screen=when{intent.getBooleanExtra("show_timers",false)->"timer";TimerStore.all(this).any{it.status=="pending"}->"done";TimerStore.all(this).any{it.status=="active"}->"timer";p.getBoolean("finished",false)->"done";else->"home"}
   if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)permissionScreen() else {draw();if(intent.getBooleanExtra("open_start_sheet",false))window.decorView.post{startDialog(intent.getStringExtra("start_type")?:"meat")};if(!p.getBoolean("welcome_shown",false)){p.edit().putBoolean("welcome_shown",true).apply();AlertDialog.Builder(this).setTitle("ברוכים הבאים").setMessage("אני פרווה עוזרת לעקוב אחרי זמן ההמתנה.").setPositiveButton("הבנתי",null).setNeutralButton("איך זה עובד"){_,_->helpScreen()}.show()}}
  }
