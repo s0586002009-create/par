@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
  private val p by lazy { getSharedPreferences("ani_parve", MODE_PRIVATE) }
- private var screen="home"; private var tick:CountDownTimer?=null
+ private var screen="home"; private var tick:CountDownTimer?=null; private val uiHandler=Handler(Looper.getMainLooper()); private var uiTick:Runnable?=null
  private var clock:TextView?=null; private var pct:TextView?=null; private var ring:RingView?=null; private var bar:ProgressBar?=null
  private val dark get()=when(p.getString("theme","system")){"dark"->true;"light"->false;else->(resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES}
  private fun c(s:String)=Color.parseColor(s)
@@ -34,7 +34,8 @@ class MainActivity : AppCompatActivity() {
  private val muted get()=c(if(dark)"#C7B5A3" else "#8D7766")
  private val copper get()=c("#B26A2B"); private val red get()=c(if(dark)"#F0645D" else "#D9433C"); private val blue get()=c(if(dark)"#80B9EA" else "#4F8BC8")
  override fun onCreate(savedInstanceState:Bundle?){applyTheme();super.onCreate(savedInstanceState);channel()
-  screen=when{p.getBoolean("finished",false)->"done";p.getLong("end",0)>System.currentTimeMillis()->"timer";p.getLong("end",0)>0->{p.edit().putBoolean("finished",true).apply();"done"};else->"home"}
+  TimerStore.all(this)
+  screen=when{intent.getBooleanExtra("show_timers",false)->"timer";TimerStore.all(this).any{it.status=="pending"}->"done";TimerStore.all(this).any{it.status=="active"}->"timer";p.getBoolean("finished",false)->"done";else->"home"}
   if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)permissionScreen() else draw()
  }
  private fun applyTheme(){AppCompatDelegate.setDefaultNightMode(when(p.getString("theme","system")){"light"->AppCompatDelegate.MODE_NIGHT_NO;"dark"->AppCompatDelegate.MODE_NIGHT_YES;else->AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM})}
@@ -74,11 +75,55 @@ class MainActivity : AppCompatActivity() {
   space(this,10);addView(TextView(this@MainActivity).apply{text=title;textSize=23f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER})
   space(this,8);val h=p.getInt(key+"_h",6);val m=p.getInt(key+"_m",0)
   addView(TextView(this@MainActivity).apply{text="המתנה: "+durationText(h,m);textSize=12f;setTextColor(Color.WHITE);gravity=Gravity.CENTER})
-  isClickable=true;setOnClickListener{val h2=p.getInt(key+"_h",6);val m2=p.getInt(key+"_m",0);val d=TimeUnit.HOURS.toMillis(h2.toLong())+TimeUnit.MINUTES.toMillis(m2.toLong());p.edit().putLong("duration",d).putLong("end",System.currentTimeMillis()+d).putBoolean("finished",false).putString("food",key).apply();schedule();screen="timer";draw()}
+  isClickable=true;setOnClickListener{startDialog(key)}
   setOnTouchListener{v,e->when(e.action){MotionEvent.ACTION_DOWN->v.animate().scaleX(.97f).scaleY(.97f).setDuration(90).start();MotionEvent.ACTION_UP,MotionEvent.ACTION_CANCEL->v.animate().scaleX(1f).scaleY(1f).setDuration(140).start()};false}
  }
  private fun panel(r:LinearLayout,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=1;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(16),dp(14),dp(16),dp(14));content()};r.addView(box,LinearLayout.LayoutParams(-1,-2))}
- private fun timerScreen(){val r=root();toolbar(r);val meat=p.getString("food","meat")=="meat";val accent=if(meat)red else blue
+ private fun startDialog(type:String){
+  val box=LinearLayout(this).apply{orientation=1;setPadding(dp(18),dp(8),dp(18),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  val name=EditText(this).apply{hint="שם אחר (לא חובה)";setSingleLine(true)}
+  box.addView(name,LinearLayout.LayoutParams(-1,dp(48)))
+  val people=TimerStore.people(this);var person:ParvePerson?=null
+  if(people.isNotEmpty()){space(box,6);label(box,"בחירת שם קבוע",13f,muted,true,Gravity.START);val chips=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   people.forEach{pp->chips.addView(outlineButton(pp.name,copper){person=pp;name.setText(pp.name)},LinearLayout.LayoutParams(-2,dp(40)).apply{marginEnd=dp(5)})}
+   box.addView(HorizontalScrollView(this).apply{isHorizontalScrollBarEnabled=false;addView(chips)},LinearLayout.LayoutParams(-1,dp(45)))
+  }
+  space(box,8);label(box,"התחלתי לפני...",14f,ink,true,Gravity.START)
+  val opts=listOf("עכשיו" to 0L,"15 דקות" to 15L,"30 דקות" to 30L,"שעה" to 60L,"שעה וחצי" to 90L,"שעתיים" to 120L)
+  var elapsed=0L
+  val row=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  opts.forEach{(title,mins)->row.addView(outlineButton(title,copper){elapsed=mins*60000L},LinearLayout.LayoutParams(-2,dp(38)).apply{marginEnd=dp(4)})}
+  val other=outlineButton("אחר",copper){val h=NumberPicker(this).apply{minValue=0;maxValue=12};val m=NumberPicker(this).apply{minValue=0;maxValue=59};val w=LinearLayout(this).apply{addView(h);addView(m)};AlertDialog.Builder(this).setTitle("כמה זמן עבר?").setView(w).setPositiveButton("אישור"){_,_->elapsed=(h.value*60L+m.value)*60000L}.setNegativeButton("ביטול",null).show()}
+  row.addView(other);box.addView(HorizontalScrollView(this).apply{isHorizontalScrollBarEnabled=false;addView(row)},LinearLayout.LayoutParams(-1,dp(46)))
+  val dlg=AlertDialog.Builder(this).setTitle(if(type=="meat")"אכלתי בשרי" else "אכלתי חלבי").setView(box).setNegativeButton("ביטול",null).setPositiveButton("התחל",null).create()
+  dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
+   val n=name.text.toString().trim().ifBlank{person?.name?:"אני"};val dur=(if(type=="meat")person?.meatWait else person?.dairyWait)?:TimerStore.duration(this,type)
+   if(elapsed>=dur){Toast.makeText(this,"כבר עברו "+durationText((dur/3600000).toInt(),((dur%3600000)/60000).toInt())+", אתה פרווה",Toast.LENGTH_LONG).show();dlg.dismiss();return@setOnClickListener}
+   if(TimerStore.all(this).count{it.status=="active"}>=10){Toast.makeText(this,"אפשר להפעיל עד 10 טיימרים במקביל",Toast.LENGTH_SHORT).show();dlg.dismiss();return@setOnClickListener}
+   val now=System.currentTimeMillis();val st=now-elapsed;val t=ParveTimer(TimerStore.newId(this),n,type,st,st+dur,dur,"active",if(elapsed>0)st else 0L)
+   TimerStore.add(this,t);TimerScheduler.schedule(this,t);p.edit().putLong("end",t.endAt).putLong("duration",t.duration).putString("food",type).putBoolean("finished",false).apply()
+   TimerNotifications.refresh(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this);dlg.dismiss();screen="timer";draw()
+  }}
+  dlg.show()
+ }
+ private fun peopleDialog(){val people=TimerStore.people(this);val names=people.map{it.name}.toMutableList().apply{add("+ הוספת שם")}.toTypedArray()
+  AlertDialog.Builder(this).setTitle("אנשים").setItems(names){_,which->
+   if(which==names.lastIndex){if(people.size>=15){Toast.makeText(this,"אפשר לשמור עד 15 שמות",Toast.LENGTH_SHORT).show();return@setItems};editPerson(null)}
+   else editPerson(people[which])
+  }.setNegativeButton("סגירה",null).show()
+ }
+ private fun editPerson(old:ParvePerson?){val box=LinearLayout(this).apply{orientation=1;setPadding(dp(18),dp(6),dp(18),dp(4))};val name=EditText(this).apply{hint="שם";setSingleLine(true);setText(old?.name?:"")};box.addView(name)
+  val sw=SwitchCompat(this).apply{text="זמנים אישיים";isChecked=old?.meatWait!=null||old?.dairyWait!=null};box.addView(sw)
+  val row=LinearLayout(this).apply{orientation=0;visibility=if(sw.isChecked)View.VISIBLE else View.GONE}
+  fun pick(v:Long)=NumberPicker(this).apply{minValue=0;maxValue=360;value=(v/60000).toInt().coerceIn(0,360);setFormatter{String.format(Locale.getDefault(),"%02d:%02d",it/60,it%60)}}
+  val meat=pick(old?.meatWait?:TimerStore.duration(this,"meat"));val dairy=pick(old?.dairyWait?:TimerStore.duration(this,"dairy"))
+  row.addView(LinearLayout(this).apply{orientation=1;addView(TextView(this@MainActivity).apply{text="בשרי ← חלבי";setTextColor(ink)});addView(meat)});row.addView(LinearLayout(this).apply{orientation=1;addView(TextView(this@MainActivity).apply{text="חלבי ← בשרי";setTextColor(ink)});addView(dairy)});box.addView(row);sw.setOnCheckedChangeListener{_,v->row.visibility=if(v)View.VISIBLE else View.GONE}
+  AlertDialog.Builder(this).setTitle(if(old==null)"הוספת שם" else "עריכת שם").setView(box).setNegativeButton("ביטול",null).setPositiveButton("שמירה"){_,_->val n=name.text.toString().trim();if(n.isBlank())return@setPositiveButton;val list=TimerStore.people(this).filterNot{it.name==old?.name}.toMutableList();if(list.any{it.name.equals(n,true)}||list.size>=15&&old==null){Toast.makeText(this,"שם כפול או שהגעתם למגבלה",Toast.LENGTH_SHORT).show();return@setPositiveButton};list.add(ParvePerson(n,if(sw.isChecked)meat.value*60000L else null,if(sw.isChecked)dairy.value*60000L else null));TimerStore.savePeople(this,list);settings()}.show()
+ }
+ private fun pinWidget(){if(Build.VERSION.SDK_INT>=26){val m=AppWidgetManager.getInstance(this);if(m.isRequestPinAppWidgetSupported){m.requestPinAppWidget(ComponentName(this,il.co.aniparve.widget.TimerWidgetProvider::class.java),null,null);return}};AlertDialog.Builder(this).setTitle("הוספת וידג'ט").setMessage("לחצו לחיצה ארוכה על מסך הבית ← וידג'טים ← אני פרווה").setPositiveButton("הבנתי",null).show()}
+ private fun helpScreen(){val r=root();toolbar(r,"איך זה עובד");val items=listOf(R.string.help_start_title to R.string.help_start_body,R.string.help_forgot_title to R.string.help_forgot_body,R.string.help_multi_title to R.string.help_multi_body,R.string.help_end_title to R.string.help_end_body,R.string.help_people_title to R.string.help_people_body,R.string.help_wait_title to R.string.help_wait_body,R.string.help_stop_title to R.string.help_stop_body,R.string.help_notifications_title to R.string.help_notifications_body,R.string.help_widget_title to R.string.help_widget_body,R.string.help_delay_title to R.string.help_delay_body);items.forEach{(a,b)->space(r,8);panel(r){addView(TextView(this@MainActivity).apply{text=getString(a);textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)});addView(TextView(this@MainActivity).apply{text=getString(b);textSize=13f;setTextColor(ink);setPadding(0,dp(5),0,0)})}};space(r,12);label(r,getString(R.string.help_disclaimer),11f,muted)}
+
+ private fun timerScreen(){val active=TimerStore.all(this).filter{it.status=="active"}.sortedBy{it.endAt};if(active.size>1){multiTimersScreen(active);return};if(active.size==1){val t=active[0];p.edit().putLong("end",t.endAt).putLong("duration",t.duration).putBoolean("finished",false).putString("food",t.type).apply()};val r=root();toolbar(r);val meat=p.getString("food","meat")=="meat";val accent=if(meat)red else blue
   space(r,16);label(r,"אני פרווה בעוד",26f,ink,true);space(r,8);label(r,if(meat)"המתנה אחרי בשרי" else "המתנה אחרי חלבי",14f,accent,true);space(r,8)
   val box=FrameLayout(this);ring=RingView(this,accent);box.addView(ring,FrameLayout.LayoutParams(dp(270),dp(270),Gravity.CENTER))
   clock=TextView(this).apply{textSize=37f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER;includeFontPadding=false};box.addView(clock,FrameLayout.LayoutParams(-1,-1));r.addView(box,LinearLayout.LayoutParams(-1,dp(292)))
@@ -94,17 +139,52 @@ class MainActivity : AppCompatActivity() {
    if(left==0L){p.edit().putBoolean("finished",true).apply();notifyDone();screen="done";doneScreen()}}
   update();if(screen=="timer")tick=object:CountDownTimer((end-System.currentTimeMillis()).coerceAtLeast(0),1000){override fun onTick(ms:Long)=update();override fun onFinish()=update()}.start()
  }
- private fun doneScreen(){tick?.cancel();val r=root();toolbar(r);space(r,48)
-  val check=TextView(this).apply{text="✓";textSize=64f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER;background=solid(copper,100);elevation=dp(4).toFloat()}
-  r.addView(check,LinearLayout.LayoutParams(dp(112),dp(112)).apply{gravity=Gravity.CENTER});check.scaleX=.7f;check.scaleY=.7f;check.animate().scaleX(1f).scaleY(1f).setDuration(350).start()
-  space(r,26);label(r,"אני פרווה",36f,ink,true);space(r,8);label(r,"זמן ההמתנה הסתיים",17f,muted);space(r,34)
-  r.addView(primaryButton("חזרה"){p.edit().remove("end").remove("duration").putBoolean("finished",false).apply();getSystemService(NotificationManager::class.java).cancel(2);screen="home";draw()},LinearLayout.LayoutParams(-1,dp(56)))
+ private fun multiTimersScreen(active:List<ParveTimer>){val r=root();toolbar(r,"הטיימרים");space(r,12);label(r,"הטיימרים הפעילים שלך",22f,ink,true)
+  active.sortedBy{it.endAt}.forEach{t->space(r,10);panel(r){orientation=1
+   val row=LinearLayout(this@MainActivity).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   row.addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"🥩" else "🧀";textSize=24f},LinearLayout.LayoutParams(dp(38),dp(40)))
+   row.addView(LinearLayout(this@MainActivity).apply{orientation=1
+    addView(TextView(this@MainActivity).apply{text=t.name;textSize=17f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
+    addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"אחרי בשרי" else "אחרי חלבי";textSize=12f;setTextColor(if(t.type=="meat")red else blue)})
+   },LinearLayout.LayoutParams(0,-2,1f))
+   row.addView(TextView(this@MainActivity).apply{text=leftText(t.endAt);tag="left_"+t.id;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
+   addView(row)
+   val pct=((System.currentTimeMillis()-t.startAt).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100)
+   val bar=ProgressBar(this@MainActivity,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=pct;progressTintList=android.content.res.ColorStateList.valueOf(if(t.type=="meat")red else blue)}
+   addView(bar,LinearLayout.LayoutParams(-1,dp(8)).apply{topMargin=dp(8)})
+   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% עברו · "+endPhrase(t.endAt);textSize=12f;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
+   if(t.ateAt>0)addView(TextView(this@MainActivity).apply{text="אכלתי בשעה "+DateFormat.getTimeFormat(this@MainActivity).format(java.util.Date(t.ateAt));textSize=11f;setTextColor(muted)})
+   addView(outlineButton("עצור",red){confirmStop(t)},LinearLayout.LayoutParams(-1,dp(42)))
+  }}
+  space(r,16);r.addView(primaryButton("+ טיימר נוסף"){screen="home";draw()},LinearLayout.LayoutParams(-1,dp(52)))
+  uiTick?.let{uiHandler.removeCallbacks(it)}
+  val task=object:Runnable{override fun run(){if(screen!="timer")return;active.forEach{t->val v=findViewWithTag<TextView>("left_"+t.id);if(v!=null)v.text=leftText(t.endAt)};uiHandler.postDelayed(this,1000)}}
+  uiTick=task;uiHandler.postDelayed(task,1000)
+ }
+ private fun leftText(end:Long):String{val ms=(end-System.currentTimeMillis()).coerceAtLeast(0L);return String.format(Locale.getDefault(),"%02d:%02d:%02d",TimeUnit.MILLISECONDS.toHours(ms),TimeUnit.MILLISECONDS.toMinutes(ms)%60,TimeUnit.MILLISECONDS.toSeconds(ms)%60)}
+ private fun endPhrase(end:Long):String{val now=java.util.Date();val date=java.util.Date(end);val f=java.text.SimpleDateFormat("yyyyMMdd",Locale.getDefault());val day=when{f.format(now)==f.format(date)->"";f.format(java.util.Date(now.time+86400000L))==f.format(date)->"מחר ";else->"ביום "+java.text.SimpleDateFormat("EEEE",Locale.getDefault()).format(date)+" "};return (if(day.isBlank())"אהיה פרווה " else day+"אהיה פרווה ")+"בשעה "+DateFormat.getTimeFormat(this).format(date)}
+ private fun findViewWithTag<T:View>(tag:Any):T?{fun find(v:View):View?{if(v.tag==tag)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};return find(window.decorView) as? T}
+ private fun confirmStop(t:ParveTimer){AlertDialog.Builder(this).setTitle("עצירת טיימר").setMessage("להפסיק את הטיימר של "+t.name+"?").setNegativeButton("לא",null).setPositiveButton("עצור"){_,_->TimerScheduler.cancel(this,t.id);TimerStore.remove(this,t.id);TimerNotifications.refresh(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this);screen=if(TimerStore.all(this).any{it.status=="active"})"timer" else if(TimerStore.all(this).any{it.status=="pending"})"done" else "home";draw()}.show()}
+ private fun doneScreen(){val r=root();toolbar(r,"הסתיים");space(r,20);label(r,"זמן ההמתנה הסתיים",24f,ink,true)
+  val pending=TimerStore.all(this).filter{it.status=="pending"}.sortedBy{it.endAt}
+  pending.forEach{t->space(r,12);panel(r){orientation=0;gravity=Gravity.CENTER_VERTICAL
+   addView(TextView(this@MainActivity).apply{text="✓";textSize=25f;setTextColor(copper)},LinearLayout.LayoutParams(dp(36),dp(42)))
+   addView(LinearLayout(this@MainActivity).apply{orientation=1
+    addView(TextView(this@MainActivity).apply{text=if(t.name=="אני")"אני פרווה" else t.name+" פרווה";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
+    addView(TextView(this@MainActivity).apply{text=endPhrase(t.endAt);textSize=12f;setTextColor(muted)})
+   },LinearLayout.LayoutParams(0,-2,1f))
+   addView(primaryButton("אישור"){TimerStore.remove(this@MainActivity,t.id);TimerScheduler.cancel(this@MainActivity,t.id);TimerNotifications.clear(this@MainActivity,t.id);il.co.aniparve.widget.WidgetUpdater.updateAll(this@MainActivity);val left=TimerStore.all(this@MainActivity);screen=if(left.any{it.status=="pending"})"done" else if(left.any{it.status=="active"})"timer" else "home";draw()})
+  }}
+  if(pending.isEmpty()){space(r,20);r.addView(primaryButton("חזרה"){screen=if(TimerStore.all(this).any{it.status=="active"})"timer" else "home";draw()},LinearLayout.LayoutParams(-1,dp(52)))}
  }
  private fun settings(){val r=root();toolbar(r,"הגדרות");space(r,12)
   section(r,"◷","זמני המתנה"){waitCard(this,"בשרי  ←  חלבי","meat");space(this,12);waitCard(this,"חלבי  ←  בשרי","dairy")}
   space(r,16);section(r,"♧","התראות"){switchRow(this,"◉","רטט בהתראה","רטט בעת סיום ההמתנה","vibrate",true);divider(this);switchRow(this,"▣","התראה קבועה בזמן הספירה","הצגת הטיימר בשורת ההתראות","persistent",true);divider(this);settingRow(this,"♫","צליל התראה",if(p.getString("sound","default")=="silent")"שקט" else "ברירת מחדל","›"){AlertDialog.Builder(this@MainActivity).setTitle("צליל התראה").setItems(arrayOf("שקט","ברירת מחדל")){_,i->p.edit().putString("sound",if(i==0)"silent" else "default").apply();channel();settings()}.show()}}
   space(r,16);section(r,"☼","מראה"){val current=p.getString("theme","system");val row=LinearLayout(this@MainActivity).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER}
    listOf("system" to "לפי המערכת","light" to "בהיר","dark" to "כהה").forEach{(key,name)->val selected=current==key;row.addView(TextView(this@MainActivity).apply{text=name;textSize=13f;gravity=Gravity.CENTER;setTextColor(if(selected)Color.WHITE else ink);background=solid(if(selected)copper else bg,22);setPadding(dp(8),dp(12),dp(8),dp(12));setOnClickListener{p.edit().putString("theme",key).apply();applyTheme();screen="settings";recreate()}},LinearLayout.LayoutParams(0,-2,1f).apply{marginStart=dp(4);marginEnd=dp(4)})};addView(row)}
+  space(r,16);section(r,"♧","אנשים"){settingRow(this,"♧","ניהול שמות קבועים","עד 15 שמות וזמני המתנה אישיים","›"){peopleDialog()}}
+  space(r,16);section(r,"▣","וידג'ט למסך הבית"){settingRow(this,"▣","הוספה למסך הבית","לחצו כדי להצמיד וידג'ט","›"){pinWidget()}}
+  space(r,16);section(r,"?","איך זה עובד"){settingRow(this,"?","פתיחת מסך הסבר","הוראות קצרות לשימוש באפליקציה","›"){helpScreen()}}
   space(r,16);section(r,"⚙","הרשאות ואמינות"){settingRow(this,"♧","הגדרות התראות וחיסכון בסוללה","ניהול הרשאות והתנהגות ברקע","›"){try{if(Build.VERSION.SDK_INT>=31)startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,Uri.parse("package:$packageName")))else startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")));if(Build.VERSION.SDK_INT>=23&&!getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName))startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:$packageName")))}catch(_:Exception){}}}
  }
  private fun section(r:LinearLayout,g:String,title:String,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=1;background=solid(card,24);elevation=dp(2).toFloat();setPadding(dp(18),dp(16),dp(18),dp(16))}
