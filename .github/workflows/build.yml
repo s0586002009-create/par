@@ -19,11 +19,22 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Prepare fixed signing key and launcher icons
+        run: |
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable
+          cp signing/ani-parve-release.jks app/ani-parve-release.jks
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher.jpg
+            cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher_round.jpg
+          done
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
       - name: Build release APK
+        env:
+          ANI_PARVE_STORE_PASSWORD: AniParveRelease2026
+          ANI_PARVE_KEY_PASSWORD: AniParveRelease2026
         run: gradle assembleRelease --no-daemon
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk ani-parve.apk
