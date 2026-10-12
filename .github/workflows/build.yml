@@ -21,8 +21,9 @@ jobs:
           java-version: '17'
       - name: Prepare fixed signing key and launcher icons
         run: |
-          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable app/src/main/res/drawable-nodpi
           cp signing/ani-parve-release.jks app/ani-parve-release.jks
+          cp signing/ic_launcher_foreground.png app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
           for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher.jpg
             cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher_round.jpg
