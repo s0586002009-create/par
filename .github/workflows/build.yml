@@ -4,7 +4,7 @@ on:
     branches: ["**"]
   workflow_dispatch:
 concurrency:
-  group: android-apk-build
+  group: android-apk-build-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: write
@@ -32,25 +32,31 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Build release APK
+      - name: Build release APK and lint
         env:
           ANI_PARVE_STORE_PASSWORD: AniParveRelease2026
           ANI_PARVE_KEY_PASSWORD: AniParveRelease2026
-        run: gradle assembleRelease --no-daemon
+        run: gradle assembleRelease lintRelease --no-daemon
       - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk ani-parve.apk
+        run: cp app/build/outputs/apk/release/app-release.apk ani-parve-v2.0.0.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ani-parve-apk
-          path: ani-parve.apk
+          name: ani-parve-v2.0.0
+          path: ani-parve-v2.0.0.apk
           retention-days: 30
-      - name: Publish GitHub Release
+      - name: Publish versioned GitHub Release
+        if: github.ref == 'refs/heads/feature/v2.0.0' && github.event.head_commit.message == 'Release v2.0.0 final build'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: אני פרווה - Build ${{ github.run_number }}
-          files: ani-parve.apk
-          generate_release_notes: true
+          tag_name: v2.0.0
+          name: אני פרווה 2.0
+          body: |
+            מה חדש בגרסה 2.0.0:
+            - כמה טיימרים במקביל עם שמות ושעת סיום.
+            - שמות קבועים וזמני המתנה אישיים.
+            - התחלה בדיעבד, וידג'ט למסך הבית ומסך הסבר.
+          files: ani-parve-v2.0.0.apk
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
