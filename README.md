@@ -13,3 +13,7 @@
 - תאימות: Android 5.0 ומעלה (minSdk 21).
 - GitHub Actions בונה APK, מריץ lint ומעלה Artifact.
 - גרסה 2.0.0 מופצת ב-tag `v2.0.0` עם הקובץ `ani-parve-v2.0.0.apk`.
+
+
+## גרסה 2.5.0
+פרטי השינויים: [הערות גרסה בעברית](RELEASE_NOTES_2.5.0.md).
