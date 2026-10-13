@@ -1,7 +1,7 @@
 plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
 android {
  namespace 'il.co.aniparve'; compileSdk 36
- defaultConfig { applicationId 'il.co.aniparve'; minSdk 21; targetSdk 35; versionCode 3; versionName '2.0.0' }
+ defaultConfig { applicationId 'il.co.aniparve'; minSdk 21; targetSdk 35; versionCode 4; versionName '2.1.0' }
  signingConfigs { release { storeFile file("ani-parve-release.jks"); storeType "JKS"; storePassword System.getenv("ANI_PARVE_STORE_PASSWORD") ?: "AniParveRelease2026"; keyAlias "aniparve"; keyPassword System.getenv("ANI_PARVE_KEY_PASSWORD") ?: "AniParveRelease2026" } }
  buildTypes { release { minifyEnabled true; shrinkResources true; signingConfig signingConfigs.release; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' } }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
