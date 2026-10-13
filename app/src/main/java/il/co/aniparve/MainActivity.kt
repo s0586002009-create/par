@@ -130,11 +130,32 @@ class MainActivity : AppCompatActivity() {
   AlertDialog.Builder(this).setTitle("הגדרת זמן").setView(content).setNegativeButton("ביטול",null).setPositiveButton("אישור"){_,_->val minutes=h.value*60L+m.value;val elapsed=if(clockTime.isChecked){val cal=java.util.Calendar.getInstance();cal.set(java.util.Calendar.HOUR_OF_DAY,h.value);cal.set(java.util.Calendar.MINUTE,m.value);cal.set(java.util.Calendar.SECOND,0);cal.set(java.util.Calendar.MILLISECOND,0);var at=cal.timeInMillis;if(at>System.currentTimeMillis())at-=TimeUnit.DAYS.toMillis(1);(System.currentTimeMillis()-at).coerceAtLeast(0L)}else TimeUnit.MINUTES.toMillis(minutes);onSelected(elapsed)}.show()
  }
 
- private fun peopleDialog(){val people=TimerStore.people(this);val names=people.map{it.name}.toMutableList().apply{add("+ הוספת שם")}.toTypedArray()
-  AlertDialog.Builder(this).setTitle("אנשים").setItems(names){_,which->
-   if(which==names.lastIndex){editPerson(null)}
-   else {val person=people[which];AlertDialog.Builder(this).setTitle(person.name).setItems(arrayOf("עריכה","מחיקה")){_,action->if(action==0)editPerson(person)else AlertDialog.Builder(this).setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this,TimerStore.people(this).filterNot{it.name==person.name});settings()}.show()}.show()}
-  }.setNegativeButton("סגירה",null).show()
+ private fun peopleDialog(){
+  val outer=LinearLayout(this).apply{orientation=1;setPadding(dp(14),dp(6),dp(14),dp(6));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  val scroll=ScrollView(this).apply{isFillViewport=false}
+  val list=LinearLayout(this).apply{orientation=1}
+  val people=TimerStore.people(this)
+  if(people.isEmpty()){val empty=TextView(this).apply{text="עדיין לא נשמרו שמות. אפשר להוסיף שם ולשמור זמני המתנה אישיים.";textSize=14f;setTextColor(muted);setPadding(dp(8),dp(18),dp(8),dp(18))};list.addView(empty)}
+  people.forEach{person->
+   val tile=LinearLayout(this).apply{orientation=1;background=solid(card,16);setPadding(dp(12),dp(10),dp(12),dp(10));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val header=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   header.addView(TextView(this).apply{text="♧";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(38),dp(44)))
+   header.addView(LinearLayout(this).apply{orientation=1
+    addView(TextView(this@MainActivity).apply{text=person.name;textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
+    addView(TextView(this@MainActivity).apply{text=if(person.meatWait!=null||person.dairyWait!=null)"זמני המתנה אישיים" else "זמני ההמתנה הכלליים";textSize=12f;setTextColor(muted);setPadding(0,dp(2),0,0)})
+   },LinearLayout.LayoutParams(0,-2,1f))
+   val arrow=TextView(this).apply{text="⌄";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER}
+   header.addView(arrow,LinearLayout.LayoutParams(dp(32),dp(44)));tile.addView(header)
+   val actions=LinearLayout(this).apply{orientation=0;visibility=View.GONE;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(8),0,0)}
+   actions.addView(outlineButton("עריכה",copper){editPerson(person)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginEnd=dp(5)})
+   actions.addView(outlineButton("מחיקה",red){AlertDialog.Builder(this@MainActivity).setTitle("מחיקת שם").setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this@MainActivity,TimerStore.people(this@MainActivity).filterNot{it.name==person.name});peopleDialog()}.show()},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(5)})
+   tile.addView(actions);header.setOnClickListener{val expanded=actions.visibility!=View.VISIBLE;actions.visibility=if(expanded)View.VISIBLE else View.GONE;arrow.text=if(expanded)"⌃" else "⌄"}
+   list.addView(tile,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
+  }
+  scroll.addView(list);outer.addView(scroll,LinearLayout.LayoutParams(-1,dp(360)))
+  val dlg=AlertDialog.Builder(this).setTitle("אנשים וזמני המתנה").setView(outer).setNegativeButton("סגירה",null).setPositiveButton("+ הוספת שם",null).create()
+  dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{dlg.dismiss();editPerson(null)}}
+  dlg.show()
  }
  private fun editPerson(old:ParvePerson?){val box=LinearLayout(this).apply{orientation=1;setPadding(dp(18),dp(6),dp(18),dp(4))};val name=EditText(this).apply{hint="שם";setSingleLine(true);setText(old?.name?:"")};box.addView(name)
   val sw=SwitchCompat(this).apply{text="זמנים אישיים";isChecked=old?.meatWait!=null||old?.dairyWait!=null};box.addView(sw)
