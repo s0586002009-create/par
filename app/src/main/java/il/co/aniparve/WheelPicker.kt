@@ -25,6 +25,7 @@ class WheelPicker @JvmOverloads constructor(
     var minValue: Int = 0
         set(v) { field = v; value = value.coerceAtLeast(v); invalidate() }
     var maxValue: Int = 59
+    var cyclic: Boolean = false
         set(v) { field = max(v, minValue); value = value.coerceAtMost(field); invalidate() }
     private var valueListener: ((WheelPicker, Int, Int) -> Unit)? = null
     var value: Int = 0
@@ -103,7 +104,8 @@ class WheelPicker @JvmOverloads constructor(
                 if (abs(event.y - downY) > dp(8f)) moved = true
                 if (abs(delta) >= step) {
                     val count = (abs(delta) / step).toInt().coerceAtLeast(1)
-                    value = (value + if (delta > 0) count else -count).coerceIn(minValue, maxValue)
+                    val raw = value + if (delta > 0) count else -count
+                    value = if (cyclic && maxValue >= minValue) minValue + (((raw - minValue) % (maxValue - minValue + 1) + (maxValue - minValue + 1)) % (maxValue - minValue + 1)) else raw.coerceIn(minValue, maxValue)
                     lastY = event.y
                 }
                 return true
