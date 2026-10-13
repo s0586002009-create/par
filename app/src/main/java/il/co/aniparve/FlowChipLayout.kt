@@ -43,7 +43,8 @@ class FlowChipLayout(context: Context) : ViewGroup(context) {
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         val available = (r - l - paddingLeft - paddingRight).coerceAtLeast(0)
-        var x = paddingLeft
+        val rtl = layoutDirection == View.LAYOUT_DIRECTION_RTL
+        var x = if (rtl) paddingLeft + available else paddingLeft
         var y = paddingTop
         var lineHeight = 0
         for (i in 0 until childCount) {
@@ -56,10 +57,15 @@ class FlowChipLayout(context: Context) : ViewGroup(context) {
             val bottomMargin = lp?.bottomMargin ?: 0
             val cw = child.measuredWidth + leftMargin + rightMargin
             val ch = child.measuredHeight + topMargin + bottomMargin
-            if (x > paddingLeft && x + cw > paddingLeft + available) { x = paddingLeft; y += lineHeight + verticalGap; lineHeight = 0 }
-            val childLeft = x + leftMargin
+            val overflow = if (rtl) x - cw < paddingLeft else x + cw > paddingLeft + available
+            if ((if (rtl) x < paddingLeft + available else x > paddingLeft) && overflow) {
+                x = if (rtl) paddingLeft + available else paddingLeft
+                y += lineHeight + verticalGap
+                lineHeight = 0
+            }
+            val childLeft = if (rtl) x - rightMargin - child.measuredWidth else x + leftMargin
             child.layout(childLeft, y + topMargin, childLeft + child.measuredWidth, y + topMargin + child.measuredHeight)
-            x += cw + horizontalGap
+            x += if (rtl) -(cw + horizontalGap) else cw + horizontalGap
             lineHeight = maxOf(lineHeight, ch)
         }
     }
