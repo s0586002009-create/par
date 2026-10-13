@@ -13,5 +13,9 @@
   <TextView android:id="@+id/widget_remaining" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/widget_text" android:textSize="16sp" android:textStyle="bold" android:gravity="center" android:visibility="gone"/>
   <TextView android:id="@+id/widget_end" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/widget_text" android:textSize="12sp" android:gravity="center"/>
   <TextView android:id="@+id/widget_more" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/widget_text" android:textSize="10sp" android:gravity="center"/>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layoutDirection="ltr">
+   <Button android:id="@+id/widget_stop" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" android:text="עצור" android:textSize="12sp"/>
+   <Button android:id="@+id/widget_add" android:layout_width="44dp" android:layout_height="40dp" android:layout_marginStart="6dp" android:text="+" android:textSize="18sp"/>
+  </LinearLayout>
  </LinearLayout>
 </LinearLayout>
