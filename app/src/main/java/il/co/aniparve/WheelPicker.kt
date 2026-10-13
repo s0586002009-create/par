@@ -25,8 +25,8 @@ class WheelPicker @JvmOverloads constructor(
     var minValue: Int = 0
         set(v) { field = v; value = value.coerceAtLeast(v); invalidate() }
     var maxValue: Int = 59
-    var cyclic: Boolean = false
         set(v) { field = max(v, minValue); value = value.coerceAtMost(field); invalidate() }
+    var cyclic: Boolean = false
     private var valueListener: ((WheelPicker, Int, Int) -> Unit)? = null
     var value: Int = 0
         set(v) { val old = field; field = v.coerceIn(minValue, maxValue); invalidate(); if (old != field) valueListener?.invoke(this, old, field) }
