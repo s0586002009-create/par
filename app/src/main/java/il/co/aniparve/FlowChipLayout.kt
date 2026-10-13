@@ -6,7 +6,8 @@ import android.view.ViewGroup
 
 /** Small dependency-free wrapping layout for action chips; works on narrow screens too. */
 class FlowChipLayout(context: Context) : ViewGroup(context) {
-    class LayoutParams(width: Int, height: Int) : ViewGroup.MarginLayoutParams(width, height) {
+    class LayoutParams : ViewGroup.MarginLayoutParams {
+        constructor(width: Int, height: Int) : super(width, height)
         constructor(p: ViewGroup.LayoutParams) : super(p)
     }
 
