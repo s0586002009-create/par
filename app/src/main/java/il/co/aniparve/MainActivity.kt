@@ -187,30 +187,40 @@ class MainActivity : AppCompatActivity() {
    if(left==0L){val active=TimerStore.all(this).firstOrNull{it.status=="active"&&it.endAt<=System.currentTimeMillis()};if(active!=null){val ended=TimerStore.pending(this,active.id);if(ended!=null)TimerNotifications.done(this,ended);TimerScheduler.cancel(this,active.id)};p.edit().putBoolean("finished",true).apply();TimerNotifications.refresh(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this);screen="done";doneScreen()}}
   update();if(screen=="timer")tick=object:CountDownTimer((end-System.currentTimeMillis()).coerceAtLeast(0),1000){override fun onTick(ms:Long)=update();override fun onFinish()=update()}.start()
  }
- private fun multiTimersScreen(active:List<ParveTimer>){val r=root();toolbar(r,"הטיימרים");space(r,12);label(r,"הטיימרים הפעילים שלך",22f,ink,true)
-  active.sortedBy{it.endAt}.forEach{t->space(r,10);panel(r){orientation=1
-   val row=LinearLayout(this@MainActivity).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
-   row.addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"🥩" else "🧀";textSize=24f},LinearLayout.LayoutParams(dp(38),dp(40)))
+ private fun multiTimersScreen(active:List<ParveTimer>){
+  val r=root();toolbar(r,"הטיימרים");space(r,12);label(r,"הטיימרים הפעילים שלך",22f,ink,true)
+  val widthDp=(resources.displayMetrics.widthPixels/resources.displayMetrics.density).toInt()
+  val columns=when{widthDp>=600&&active.size>=5->3;widthDp>=360->2;else->1}
+  val grid=GridLayout(this).apply{columnCount=columns;orientation=GridLayout.HORIZONTAL;alignmentMode=GridLayout.ALIGN_BOUNDS;useDefaultMargins=false}
+  active.sortedBy{it.endAt}.forEachIndexed{index,t->
+   val cardView=LinearLayout(this).apply{orientation=1;background=solid(card,20);elevation=dp(2).toFloat();setPadding(dp(if(columns>1)10 else 16),dp(12),dp(if(columns>1)10 else 16),dp(12));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   row.addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"🥩" else "🧀";textSize=if(columns>1)20f else 24f},LinearLayout.LayoutParams(dp(32),dp(38)))
    row.addView(LinearLayout(this@MainActivity).apply{orientation=1
-    addView(TextView(this@MainActivity).apply{text=t.name;textSize=17f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
-    addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"אחרי בשרי" else "אחרי חלבי";textSize=12f;setTextColor(if(t.type=="meat")red else blue)})
+    addView(TextView(this@MainActivity).apply{text=t.name;textSize=if(columns>1)15f else 17f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
+    addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"אחרי בשרי" else "אחרי חלבי";textSize=11f;setTextColor(if(t.type=="meat")red else blue)})
    },LinearLayout.LayoutParams(0,-2,1f))
-   row.addView(TextView(this@MainActivity).apply{text=leftText(t.endAt);tag="left_"+t.id;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
-   addView(row)
+   cardView.addView(row)
+   val left=TextView(this).apply{text=leftText(t.endAt);tag="left_"+t.id;textSize=if(columns>1)22f else 26f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER;setPadding(0,dp(10),0,dp(4))}
+   cardView.addView(left)
    val pct=((t.endAt-System.currentTimeMillis()).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100)
-   val bar=ProgressBar(this@MainActivity,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=pct;tag="bar_"+t.id;progressTintList=android.content.res.ColorStateList.valueOf(if(t.type=="meat")red else blue)}
-   addView(bar,LinearLayout.LayoutParams(-1,dp(8)).apply{topMargin=dp(8)})
-   addView(TextView(this@MainActivity).apply{text=pct.toString()+"% נותרו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "));textSize=12f;tag="pct_"+t.id;setTextColor(muted);setPadding(0,dp(7),0,dp(8))})
-   if(t.ateAt>0)addView(TextView(this@MainActivity).apply{text="סיימתי לאכול בשעה "+DateFormat.getTimeFormat(this@MainActivity).format(java.util.Date(t.ateAt));textSize=11f;setTextColor(muted)})
-   addView(outlineButton("עצור",red){confirmStop(t)},LinearLayout.LayoutParams(-1,dp(42)))
-  }}
-  space(r,16);r.addView(primaryButton("+ טיימר נוסף"){screen="home";draw()},LinearLayout.LayoutParams(-1,dp(52)))
+   val bar=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=pct;tag="bar_"+t.id;progressTintList=android.content.res.ColorStateList.valueOf(if(t.type=="meat")red else blue)}
+   cardView.addView(bar,LinearLayout.LayoutParams(-1,dp(7)).apply{topMargin=dp(7)})
+   cardView.addView(TextView(this).apply{text=pct.toString()+"% נותרו";textSize=12f;tag="pct_"+t.id;setTextColor(muted);gravity=Gravity.CENTER;setPadding(0,dp(6),0,dp(2))})
+   cardView.addView(TextView(this).apply{text=if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה ");textSize=11f;setTextColor(muted);gravity=Gravity.CENTER;setPadding(0,dp(2),0,dp(7))})
+   if(t.ateAt>0)cardView.addView(TextView(this).apply{text="אכילה: "+DateFormat.getTimeFormat(this@MainActivity).format(java.util.Date(t.ateAt));textSize=10f;setTextColor(muted);gravity=Gravity.CENTER})
+   cardView.addView(outlineButton("עצור",red){confirmStop(t)},LinearLayout.LayoutParams(-1,dp(40)).apply{topMargin=dp(8)})
+   val lp=GridLayout.LayoutParams(GridLayout.spec(index/columns),GridLayout.spec(index%columns,1f)).apply{width=0;height=-2;setMargins(dp(4),dp(4),dp(4),dp(4))}
+   grid.addView(cardView,lp)
+  }
+  r.addView(grid,LinearLayout.LayoutParams(-1,-2))
+  space(r,14);r.addView(primaryButton("+ טיימר נוסף"){screen="home";draw()},LinearLayout.LayoutParams(-1,dp(52)))
   uiTick?.let{uiHandler.removeCallbacks(it)}
   val task=object:Runnable{override fun run(){if(screen!="timer")return
    val now=System.currentTimeMillis()
    val ended=active.filter{it.endAt<=now}
    if(ended.isNotEmpty()){ended.forEach{TimerStore.pending(this@MainActivity,it.id)?.let{done->TimerScheduler.cancel(this@MainActivity,done.id);TimerNotifications.done(this@MainActivity,done)}};TimerNotifications.refresh(this@MainActivity);il.co.aniparve.widget.WidgetUpdater.updateAll(this@MainActivity);screen=if(TimerStore.all(this@MainActivity).any{it.status=="pending"})"done" else if(TimerStore.all(this@MainActivity).any{it.status=="active"})"timer" else "home";draw();return}
-   active.forEach{t->val v=findViewWithTag<TextView>("left_"+t.id);if(v!=null)v.text=leftText(t.endAt);val progress=((t.endAt-now).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100);findViewWithTag<ProgressBar>("bar_"+t.id)?.progress=progress;findViewWithTag<TextView>("pct_"+t.id)?.text=progress.toString()+"% נותרו · "+(if(t.name=="אני")endPhrase(t.endAt) else t.name+" פרווה "+endPhrase(t.endAt).removePrefix("אהיה פרווה "))}
+   active.forEach{t->val v=findViewWithTag<TextView>("left_"+t.id);if(v!=null)v.text=leftText(t.endAt);val progress=((t.endAt-now).coerceAtLeast(0L)*100L/t.duration.coerceAtLeast(1L)).toInt().coerceIn(0,100);findViewWithTag<ProgressBar>("bar_"+t.id)?.progress=progress;findViewWithTag<TextView>("pct_"+t.id)?.text=progress.toString()+"% נותרו"}
    uiHandler.postDelayed(this,1000)
   }}
   uiTick=task;uiHandler.postDelayed(task,1000)
