@@ -6,14 +6,16 @@ import android.view.ViewGroup
 
 /** Small dependency-free wrapping layout for action chips; works on narrow screens too. */
 class FlowChipLayout(context: Context) : ViewGroup(context) {
-    class LayoutParams(width: Int, height: Int) : ViewGroup.LayoutParams(width, height)
+    class LayoutParams(width: Int, height: Int) : MarginLayoutParams(width, height) {
+        constructor(p: ViewGroup.LayoutParams) : super(p)
+    }
 
     private val horizontalGap = (6 * resources.displayMetrics.density).toInt()
     private val verticalGap = (6 * resources.displayMetrics.density).toInt()
 
     override fun generateDefaultLayoutParams() = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
     override fun generateLayoutParams(attrs: android.util.AttributeSet?) = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
-    override fun generateLayoutParams(p: ViewGroup.LayoutParams?) = LayoutParams(p?.width ?: LayoutParams.WRAP_CONTENT, p?.height ?: LayoutParams.WRAP_CONTENT)
+    override fun generateLayoutParams(p: ViewGroup.LayoutParams?) = if (p == null) LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT) else LayoutParams(p)
     override fun checkLayoutParams(p: ViewGroup.LayoutParams?) = p is LayoutParams
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -27,8 +29,9 @@ class FlowChipLayout(context: Context) : ViewGroup(context) {
             if (child.visibility == View.GONE) continue
             measureChild(child, widthMeasureSpec, heightMeasureSpec)
             val lp = child.layoutParams
-            val cw = child.measuredWidth + (lp as? MarginLayoutParams)?.let { it.leftMargin + it.rightMargin }!!
-            val ch = child.measuredHeight + (lp as? MarginLayoutParams)?.let { it.topMargin + it.bottomMargin }!!
+            val margins = lp as? MarginLayoutParams
+            val cw = child.measuredWidth + (margins?.let { it.leftMargin + it.rightMargin } ?: 0)
+            val ch = child.measuredHeight + (margins?.let { it.topMargin + it.bottomMargin } ?: 0)
             if (x > 0 && x + cw > available) { x = 0; y += lineHeight + verticalGap; lineHeight = 0 }
             x += cw + horizontalGap
             lineHeight = maxOf(lineHeight, ch)
