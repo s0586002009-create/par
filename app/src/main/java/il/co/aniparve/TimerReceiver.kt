@@ -9,3 +9,17 @@ object TimerScheduler{
  fun schedule(c:Context,t:ParveTimer){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;val f=PendingIntent.FLAG_UPDATE_CURRENT or if(Build.VERSION.SDK_INT>=23)PendingIntent.FLAG_IMMUTABLE else 0;val pi=PendingIntent.getBroadcast(c,code(t.id),Intent(c,TimerReceiver::class.java).putExtra("timer_id",t.id),f);try{if(Build.VERSION.SDK_INT>=23)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,t.endAt,pi)else am.setExact(AlarmManager.RTC_WAKEUP,t.endAt,pi)}catch(_:SecurityException){am.set(AlarmManager.RTC_WAKEUP,t.endAt,pi)}}
  fun cancel(c:Context,id:Long){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;val f=PendingIntent.FLAG_UPDATE_CURRENT or if(Build.VERSION.SDK_INT>=23)PendingIntent.FLAG_IMMUTABLE else 0;am.cancel(PendingIntent.getBroadcast(c,code(id),Intent(c,TimerReceiver::class.java).putExtra("timer_id",id),f));TimerNotifications.clear(c,id)}
 }
+class StopActionReceiver:BroadcastReceiver(){
+ override fun onReceive(c:Context,i:Intent?){
+  val action=i?.action?:"";val id=i?.getLongExtra("timer_id",0L)?:0L
+  if(action=="open_timer"){c.startActivity(Intent(c,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP).putExtra("show_timers",true));return}
+  if(action!="stop_timer"||id==0L)return
+  StopActions.stop(c,id)
+ }
+}
+object StopActions{
+ fun stop(c:Context,id:Long){
+  val t=TimerStore.all(c).firstOrNull{it.id==id&&it.status=="active"}?:return
+  TimerScheduler.cancel(c,t.id);TimerStore.remove(c,t.id);TimerNotifications.refresh(c);il.co.aniparve.widget.WidgetUpdater.updateAll(c)
+ }
+}
