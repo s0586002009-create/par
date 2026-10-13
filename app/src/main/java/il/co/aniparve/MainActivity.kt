@@ -46,12 +46,13 @@ class MainActivity : AppCompatActivity() {
   screen=savedInstanceState?.getString("ani_screen")?:when{intent.getBooleanExtra("show_timers",false)->"timer";TimerStore.all(this).any{it.status=="pending"}->"done";TimerStore.all(this).any{it.status=="active"}->"timer";p.getBoolean("finished",false)->"done";else->"home"}
   if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)permissionScreen() else {draw();if(intent.getBooleanExtra("open_type_picker",false))window.decorView.post{chooseTimerType()}else if(intent.getBooleanExtra("open_start_sheet",false))window.decorView.post{startDialog(intent.getStringExtra("start_type")?:"meat")};if(!p.getBoolean("welcome_shown",false)){p.edit().putBoolean("welcome_shown",true).apply();AlertDialog.Builder(this).setTitle("ברוכים הבאים").setMessage("אני פרווה עוזרת לעקוב אחרי זמן ההמתנה.").setPositiveButton("הבנתי",null).setNeutralButton("איך זה עובד"){_,_->helpScreen()}.show()}}
  }
+ override fun onBackPressed(){if(screen=="help"){screen="settings";draw()}else if(screen=="settings"){screen=if(TimerStore.all(this).any{it.status=="active"})"timer" else "home";draw()}else super.onBackPressed()}
  override fun onSaveInstanceState(outState:Bundle){outState.putString("ani_screen",screen);outState.putInt("ani_scroll_y",maxOf(scrollHost?.scrollY?:0,restoreScrollY));super.onSaveInstanceState(outState)}
  override fun onPause(){super.onPause();uiTick?.let{uiHandler.removeCallbacks(it)};tick?.cancel()}
  override fun onResume(){super.onResume();if(screen=="timer")draw()}
  private fun applyTheme(){AppCompatDelegate.setDefaultNightMode(when(p.getString("theme","system")){"light"->AppCompatDelegate.MODE_NIGHT_NO;"dark"->AppCompatDelegate.MODE_NIGHT_YES;else->AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM})}
  private fun channel(){if(Build.VERSION.SDK_INT>=26){val id="parve_"+p.getString("sound","default");val ch=NotificationChannel(id,"אני פרווה",NotificationManager.IMPORTANCE_HIGH);ch.enableVibration(p.getBoolean("vibrate",true));if(p.getString("sound","default")=="silent")ch.setSound(null,null);getSystemService(NotificationManager::class.java).createNotificationChannel(ch);p.edit().putString("channel",id).apply()}}
- private fun draw(){tick?.cancel();when(screen){"timer"->timerScreen();"done"->doneScreen();"settings"->settings();else->home()}}
+ private fun draw(){tick?.cancel();when(screen){"help"->helpScreen(); "timer"->timerScreen();"done"->doneScreen();"settings"->settings();else->home()}}
  private fun solid(color:Int,r:Int=20)=GradientDrawable().apply{shape=GradientDrawable.RECTANGLE;cornerRadius=dp(r).toFloat();setColor(color)}
  private fun grad(colors:IntArray,r:Int=24)=GradientDrawable(GradientDrawable.Orientation.TL_BR,colors).apply{cornerRadius=dp(r).toFloat()}
  private fun dp(n:Int)=(n*resources.displayMetrics.density).toInt()
@@ -70,7 +71,7 @@ class MainActivity : AppCompatActivity() {
  private fun space(parent:LinearLayout,n:Int){parent.addView(Space(this),LinearLayout.LayoutParams(1,dp(n)))}
  private fun label(parent:LinearLayout,s:String,size:Float,color:Int,bold:Boolean=false,gravity:Int=Gravity.CENTER){parent.addView(TextView(this).apply{text=s;textSize=size;setTextColor(color);this.gravity=gravity;typeface=if(bold)Typeface.create("sans-serif-medium",Typeface.BOLD) else Typeface.create("sans-serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,-2))}
  private fun toolbar(r:LinearLayout,title:String?=null){val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR}
-  val isSettings=title=="הגדרות";row.addView(iconBtn(if(isSettings)"‹" else "⚙",if(isSettings)"חזרה" else "הגדרות"){if(isSettings){screen=if(p.getBoolean("finished",false))"done" else if(p.getLong("end",0)>System.currentTimeMillis())"timer" else "home";draw()}else{screen="settings";draw()}},LinearLayout.LayoutParams(dp(48),dp(48)))
+  val isSettings=title=="הגדרות";val isHelp=title=="איך זה עובד";val hasBack=isSettings||isHelp;row.addView(iconBtn(if(hasBack)"‹" else "⚙",if(hasBack)"חזרה" else "הגדרות"){if(isHelp){screen="settings";draw()}else if(isSettings){screen=if(p.getBoolean("finished",false))"done" else if(p.getLong("end",0)>System.currentTimeMillis())"timer" else "home";draw()}else{screen="settings";draw()}},LinearLayout.LayoutParams(dp(48),dp(48)))
   val brand=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_RTL}
   brand.addView(ImageView(this).apply{try{setImageResource(R.mipmap.ic_launcher)}catch(_:Exception){};scaleType=ImageView.ScaleType.FIT_CENTER},LinearLayout.LayoutParams(dp(34),dp(34)).apply{marginStart=dp(7)})
   brand.addView(TextView(this).apply{text=title?:"אני פרווה";textSize=19f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER_VERTICAL})
@@ -85,7 +86,7 @@ class MainActivity : AppCompatActivity() {
    addView(LinearLayout(this@MainActivity).apply{orientation=1;addView(TextView(this@MainActivity).apply{text="זמני ההמתנה שלך";textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text="אפשר לשנות את הזמנים בהגדרות";textSize=12f;setTextColor(muted);setPadding(0,dp(3),0,0)})},LinearLayout.LayoutParams(0,-2,1f))
    addView(TextView(this@MainActivity).apply{text="›";textSize=26f;setTextColor(muted)})
    setOnClickListener{screen="settings";draw()}
-  };space(r,18);label(r,"פשוט בוחרים, ממתינים — וחוזרים לשגרה.",13f,muted)
+  };space(r,18)
  }
  private fun food(emoji:String,title:String,key:String)=LinearLayout(this).apply{
   orientation=1;gravity=Gravity.CENTER;setPadding(dp(8),dp(18),dp(8),dp(18));layoutDirection=View.LAYOUT_DIRECTION_RTL
@@ -100,18 +101,24 @@ class MainActivity : AppCompatActivity() {
  private fun panel(r:LinearLayout,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=1;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(16),dp(14),dp(16),dp(14));content()};r.addView(box,LinearLayout.LayoutParams(-1,-2))}
  private fun chooseTimerType(){AlertDialog.Builder(this).setTitle("הוספת טיימר").setItems(arrayOf("בשרי","חלבי")){_,which->startDialog(if(which==0)"meat" else "dairy")}.show()}
  private fun startDialog(type:String){
+  val autoEnabled=p.getBoolean("auto_start",true);val autoSeconds=p.getInt("auto_start_seconds",10).coerceIn(3,30);val autoHandler=Handler(Looper.getMainLooper());var autoRunnable:Runnable?=null;var autoCancelled=false;var autoArmed=false
   val box=LinearLayout(this).apply{orientation=1;setPadding(dp(18),dp(8),dp(18),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  val autoText=TextView(this).apply{text="מתחיל אוטומטית בעוד ${autoSeconds} שניות";textSize=11f;setTextColor(muted);gravity=Gravity.CENTER;visibility=View.GONE}
+  val autoProgress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=1000;progress=1000;visibility=View.GONE;progressTintList=android.content.res.ColorStateList.valueOf(copper);progressBackgroundTintList=android.content.res.ColorStateList.valueOf(if(dark)c("#51443A") else c("#E8C9A6"))}
+  box.addView(autoText,LinearLayout.LayoutParams(-1,dp(22)));box.addView(autoProgress,LinearLayout.LayoutParams(-1,dp(3)))
+  fun cancelAuto(){if(autoCancelled)return;autoCancelled=true;autoRunnable?.let{autoHandler.removeCallbacks(it)};autoText.visibility=View.GONE;autoProgress.visibility=View.GONE}
+  fun userTouched(){if(autoArmed)cancelAuto()}
   val name=EditText(this).apply{hint="שם אחר (לא חובה)";setSingleLine(true);maxLines=1}
   box.addView(name,LinearLayout.LayoutParams(-1,dp(48)))
   val saveName=CheckBox(this).apply{text="שמור לפעמים הבאות";textSize=13f;setTextColor(ink);visibility=View.GONE}
-  box.addView(saveName,LinearLayout.LayoutParams(-1,dp(40)))
+  box.addView(saveName,LinearLayout.LayoutParams(-1,dp(40)));saveName.setOnCheckedChangeListener{_,_->userTouched()}
   fun updateSaveName(){val entered=name.text.toString().trim();saveName.visibility=if(entered.isNotEmpty() && TimerStore.people(this).none{it.name.equals(entered,true)})View.VISIBLE else View.GONE;if(saveName.visibility==View.GONE)saveName.isChecked=false}
-  name.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){updateSaveName()};override fun afterTextChanged(s:Editable?) {}})
+  name.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){userTouched();updateSaveName()};override fun afterTextChanged(s:Editable?) {}})
   val people=TimerStore.people(this);var person:ParvePerson?=null
   if(people.isNotEmpty()){space(box,6);label(box,"בחירת שם קבוע",13f,muted,true,Gravity.START)
    val chips=FlowChipLayout(this).apply{layoutDirection=View.LAYOUT_DIRECTION_RTL}
    val personButtons=mutableListOf<Pair<TextView,ParvePerson>>()
-   people.forEach{pp->val b=outlineButton(pp.name,copper){person=pp;name.setText(pp.name);personButtons.forEach{(v,p0)->v.background=chipBackground(p0==pp);v.setTextColor(if(p0==pp)Color.WHITE else copper)}}
+   people.forEach{pp->val b=outlineButton(pp.name,copper){userTouched();person=pp;name.setText(pp.name);personButtons.forEach{(v,p0)->v.background=chipBackground(p0==pp);v.setTextColor(if(p0==pp)Color.WHITE else copper)}}
     b.textSize=13f;b.maxLines=1;b.isSingleLine=true;b.gravity=Gravity.CENTER;b.setPadding(dp(16),dp(10),dp(16),dp(10));chips.addView(b,FlowChipLayout.LayoutParams(-2,dp(42)));personButtons.add(b to pp)}
    box.addView(chips,LinearLayout.LayoutParams(-1,-2))
   }
@@ -120,9 +127,9 @@ class MainActivity : AppCompatActivity() {
   var elapsed=0L
   val row=FlowChipLayout(this).apply{layoutDirection=View.LAYOUT_DIRECTION_RTL}
   val elapsedButtons=mutableListOf<Pair<TextView,Long>>()
-  fun selectElapsed(value:Long){elapsed=value;elapsedButtons.forEach{(v,m)->v.background=chipBackground(m==value);v.setTextColor(if(m==value)Color.WHITE else copper)}}
+  fun selectElapsed(value:Long){userTouched();elapsed=value;elapsedButtons.forEach{(v,m)->v.background=chipBackground(m==value);v.setTextColor(if(m==value)Color.WHITE else copper)}}
   opts.forEach{(title,mins)->val b=outlineButton(title,copper){selectElapsed(mins*60000L)};b.textSize=13f;b.maxLines=1;b.isSingleLine=true;b.gravity=Gravity.CENTER;b.setPadding(dp(16),dp(10),dp(16),dp(10));row.addView(b,FlowChipLayout.LayoutParams(-2,dp(42)));elapsedButtons.add(b to mins*60000L)}
-  val other=outlineButton("אחר",copper){showElapsedPicker{selectElapsed(it)}}
+  val other=outlineButton("אחר",copper){userTouched();showElapsedPicker{selectElapsed(it)}}
   other.textSize=13f;other.maxLines=1;other.isSingleLine=true;other.gravity=Gravity.CENTER;other.setPadding(dp(16),dp(10),dp(16),dp(10));row.addView(other,FlowChipLayout.LayoutParams(-2,dp(42)))
   box.addView(row,LinearLayout.LayoutParams(-1,-2))
   // The selected preset is highlighted so the current choice is always clear.
@@ -143,7 +150,8 @@ class MainActivity : AppCompatActivity() {
    TimerStore.add(this,t);TimerScheduler.schedule(this,t);p.edit().putLong("end",t.endAt).putLong("duration",t.duration).putString("food",type).putBoolean("finished",false).apply()
    TimerNotifications.refresh(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this);dlg.dismiss();screen="timer";draw()
   }}
-  dlg.show()
+  dlg.setOnCancelListener{cancelAuto()};dlg.setOnDismissListener{cancelAuto()};dlg.show();autoArmed=true
+  if(autoEnabled){autoText.visibility=View.VISIBLE;autoProgress.visibility=View.VISIBLE;val started=SystemClock.elapsedRealtime();autoRunnable=object:Runnable{override fun run(){if(autoCancelled||!dlg.isShowing)return;val elapsedMs=SystemClock.elapsedRealtime()-started;val remaining=(autoSeconds*1000L-elapsedMs).coerceAtLeast(0L);autoText.text="מתחיל אוטומטית בעוד ${((remaining+999)/1000).toInt()} שניות";autoProgress.progress=((remaining*1000)/(autoSeconds*1000L)).toInt();if(remaining<=0L)dlg.getButton(AlertDialog.BUTTON_POSITIVE).performClick() else autoHandler.postDelayed(this,100L)}};autoHandler.post(autoRunnable!!)}
  }
  private fun chipBackground(selected:Boolean)=GradientDrawable().apply{cornerRadius=dp(20).toFloat();setColor(if(selected)copper else card);setStroke(dp(1),copper)}
  private fun showElapsedPicker(onSelected:(Long)->Unit){val tabs=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL};val content=LinearLayout(this).apply{orientation=1;setPadding(dp(16),dp(10),dp(16),dp(8))}
@@ -205,7 +213,7 @@ class MainActivity : AppCompatActivity() {
    }.show()
   }
   private fun pinWidget(){if(Build.VERSION.SDK_INT>=26){val m=AppWidgetManager.getInstance(this);if(m.isRequestPinAppWidgetSupported){m.requestPinAppWidget(ComponentName(this,il.co.aniparve.widget.TimerWidgetProvider::class.java),null,null);return}};AlertDialog.Builder(this).setTitle("הוספת וידג'ט").setMessage("לחצו לחיצה ארוכה על מסך הבית ← וידג'טים ← אני פרווה").setPositiveButton("הבנתי",null).show()}
- private fun helpScreen(){val r=root();toolbar(r,"איך זה עובד");val items=listOf(R.string.help_start_title to R.string.help_start_body,R.string.help_forgot_title to R.string.help_forgot_body,R.string.help_multi_title to R.string.help_multi_body,R.string.help_end_title to R.string.help_end_body,R.string.help_people_title to R.string.help_people_body,R.string.help_wait_title to R.string.help_wait_body,R.string.help_stop_title to R.string.help_stop_body,R.string.help_notifications_title to R.string.help_notifications_body,R.string.help_widget_title to R.string.help_widget_body,R.string.help_delay_title to R.string.help_delay_body);items.forEach{(a,b)->space(r,8);panel(r){addView(TextView(this@MainActivity).apply{text=getString(a);textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)});addView(TextView(this@MainActivity).apply{text=getString(b);textSize=13f;setTextColor(ink);setPadding(0,dp(5),0,0)})}};space(r,12);label(r,getString(R.string.help_disclaimer),11f,muted)}
+ private fun helpScreen(){screen="help";val r=root();toolbar(r,"איך זה עובד");val items=listOf(R.string.help_start_title to R.string.help_start_body,R.string.help_forgot_title to R.string.help_forgot_body,R.string.help_multi_title to R.string.help_multi_body,R.string.help_end_title to R.string.help_end_body,R.string.help_people_title to R.string.help_people_body,R.string.help_wait_title to R.string.help_wait_body,R.string.help_stop_title to R.string.help_stop_body,R.string.help_notifications_title to R.string.help_notifications_body,R.string.help_widget_title to R.string.help_widget_body,R.string.help_delay_title to R.string.help_delay_body);items.forEach{(a,b)->space(r,8);panel(r){addView(TextView(this@MainActivity).apply{text=getString(a);textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)});addView(TextView(this@MainActivity).apply{text=getString(b);textSize=13f;setTextColor(ink);setPadding(0,dp(5),0,0)})}};space(r,12);label(r,getString(R.string.help_disclaimer),11f,muted)}
 
  private fun timerScreen(){val active=TimerStore.all(this).filter{it.status=="active"}.sortedBy{it.endAt};if(active.size>1){multiTimersScreen(active);return};if(active.size==1){val t=active[0];p.edit().putLong("end",t.endAt).putLong("duration",t.duration).putBoolean("finished",false).putString("food",t.type).apply()};val r=root();toolbar(r);val meat=p.getString("food","meat")=="meat";val accent=if(meat)red else blue
   space(r,16);val activeName=active.firstOrNull()?.name?:"אני";label(r,if(activeName=="אני")"אני פרווה בעוד" else activeName+" פרווה בעוד",26f,ink,true);space(r,8);label(r,if(meat)"המתנה אחרי בשרי" else "המתנה אחרי חלבי",14f,accent,true);space(r,8)
@@ -280,6 +288,7 @@ class MainActivity : AppCompatActivity() {
   if(pending.isEmpty()){space(r,20);r.addView(primaryButton("חזרה"){screen=if(TimerStore.all(this).any{it.status=="active"})"timer" else "home";draw()},LinearLayout.LayoutParams(-1,dp(52)))}
  }
  private fun settings(){val r=root();toolbar(r,"הגדרות");space(r,12)
+ section(r,"◷","התחלה אוטומטית"){switchRow(this,"▶","התחלה אוטומטית של טיימר","התחל אוטומטית אם לא נוגעים בחלון","auto_start",true);divider(this);settingRow(this,"◷","משך הספירה לאחור","${p.getInt("auto_start_seconds",10)} שניות","›"){val cur=p.getInt("auto_start_seconds",10);val vals=(3..30).map{it.toString()}.toTypedArray();AlertDialog.Builder(this@MainActivity).setTitle("התחלה אוטומטית בעוד כמה שניות?").setSingleChoiceItems(vals,cur-3){d,i->p.edit().putInt("auto_start_seconds",i+3).apply();d.dismiss();settings()}.setNegativeButton("ביטול",null).show()}}
  section(r,"◷","זמני המתנה ואנשים"){peopleAccordion(this)}
  space(r,14);section(r,"✓","אישור לפני עצירה"){switchRow(this,"▣","בקש אישור לפני עצירה מהאפליקציה","אישור לפני עצירת טיימר מתוך האפליקציה","stop_confirm_app",true);divider(this);switchRow(this,"▣","בקש אישור לפני עצירה מהווידג'ט","אישור לפני עצירת טיימר בווידג'ט","stop_confirm_widget",true);divider(this);switchRow(this,"▣","בקש אישור לפני עצירה מהתראת אנדרואיד","אישור לפני עצירה מההתראה הקבועה","stop_confirm_notification",false)}
  space(r,14);section(r,"♫","התראות"){switchRow(this,"◉","רטט בהתראה","רטט בעת סיום ההמתנה","vibrate",true);divider(this);switchRow(this,"▣","התראה קבועה בזמן הספירה","הצגת הטיימר בשורת ההתראות","persistent",true);divider(this);settingRow(this,"♫","צליל התראה",if(p.getString("sound","default")=="silent")"שקט" else "ברירת מחדל","›"){AlertDialog.Builder(this@MainActivity).setTitle("צליל התראה").setItems(arrayOf("שקט","ברירת מחדל")){_,i->p.edit().putString("sound",if(i==0)"silent" else "default").apply();channel();TimerNotifications.refresh(this@MainActivity);settings()}.show()}}

@@ -11,7 +11,7 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 class TimerWidgetProvider:AppWidgetProvider(){
  override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray)=WidgetUpdater.updateAll(c)
- override fun onAppWidgetOptionsChanged(c:Context,m:AppWidgetManager,id:Int,o:Bundle)=WidgetUpdater.updateAll(c)
+ override fun onAppWidgetOptionsChanged(c:Context,m:AppWidgetManager,id:Int,o:Bundle){super.onAppWidgetOptionsChanged(c,m,id,o);WidgetUpdater.updateAll(c,o,id)}
  override fun onReceive(c:Context,i:Intent){super.onReceive(c,i);if(i.action==TICK)WidgetUpdater.updateAll(c)}
  companion object{const val TICK="il.co.aniparve.widget.TICK"}
 }
@@ -43,12 +43,13 @@ private class TimerWidgetFactory(private val c:Context):RemoteViewsService.Remot
  override fun hasStableIds()=true
 }
 object WidgetUpdater{
- fun updateAll(c:Context){
+ fun updateAll(c:Context,options:Bundle?=null,widgetId:Int?=null){
   val m=AppWidgetManager.getInstance(c);val ids=m.getAppWidgetIds(ComponentName(c,TimerWidgetProvider::class.java));if(ids.isEmpty())return
   val active=TimerStore.all(c).filter{it.status=="active"}.sortedBy{it.endAt}
   ids.forEach{id->
    val v=RemoteViews(c.packageName,R.layout.timer_widget)
-   v.setViewVisibility(R.id.widget_empty,if(active.isEmpty())android.view.View.VISIBLE else android.view.View.GONE)
+   val opts=options?:m.getAppWidgetOptions(id);val minW=opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,180);val minH=opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,110);val compact=minW<150||minH<100
+   v.setViewVisibility(R.id.widget_empty,if(active.isEmpty())android.view.View.VISIBLE else android.view.View.GONE);v.setViewVisibility(R.id.widget_meat,if(compact)android.view.View.GONE else android.view.View.VISIBLE);v.setViewVisibility(R.id.widget_dairy,if(compact)android.view.View.GONE else android.view.View.VISIBLE);v.setTextViewTextSize(R.id.widget_open,android.util.TypedValue.COMPLEX_UNIT_SP,if(compact)12f else 14f)
    v.setViewVisibility(R.id.widget_active,if(active.isEmpty())android.view.View.GONE else android.view.View.VISIBLE)
    v.setOnClickPendingIntent(R.id.widget_open,pi(c,1,null,false));v.setOnClickPendingIntent(R.id.widget_meat,pi(c,2,"meat",false));v.setOnClickPendingIntent(R.id.widget_dairy,pi(c,3,"dairy",false))
    v.setOnClickPendingIntent(R.id.widget_add,pi(c,6,active.firstOrNull()?.type?:"meat",false,true))
@@ -86,7 +87,7 @@ object WidgetUpdater{
  }
  private fun pi(c:Context,req:Int,type:String?,timers:Boolean,openSheet:Boolean=false):PendingIntent{
   val i=Intent(c,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-  if(type!=null)i.putExtra("start_type",type);if(req==6)i.putExtra("open_type_picker",true) else if(openSheet)i.putExtra("open_start_sheet",true);if(timers)i.putExtra("show_timers",true)
+  if(type!=null){i.putExtra("start_type",type);i.putExtra("open_start_sheet",true)};if(req==6)i.putExtra("open_type_picker",true);if(openSheet)i.putExtra("open_start_sheet",true);if(timers)i.putExtra("show_timers",true)
   return PendingIntent.getActivity(c,req,i,flags())
  }
  private fun minuteTick(c:Context){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;val pi=PendingIntent.getBroadcast(c,7001,Intent(c,TimerWidgetProvider::class.java).setAction(TimerWidgetProvider.TICK),flags());try{if(Build.VERSION.SDK_INT>=23)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)else am.setExact(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)}catch(_:SecurityException){am.set(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)}}
