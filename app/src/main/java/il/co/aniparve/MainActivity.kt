@@ -148,6 +148,9 @@ class MainActivity : AppCompatActivity() {
   wheels.addView(h,LinearLayout.LayoutParams(0,dp(160),1f));wheels.addView(m,LinearLayout.LayoutParams(0,dp(160),1f));content.addView(wheels)
   fun updateMode(){val isClock=clockTime.isChecked;val cal=java.util.Calendar.getInstance();h.maxValue=if(isClock)23 else 6;h.value=if(isClock)cal.get(java.util.Calendar.HOUR_OF_DAY) else 0;m.value=if(isClock)cal.get(java.util.Calendar.MINUTE) else 0}
   relative.setOnClickListener{relative.isChecked=true;clockTime.isChecked=false;updateMode()};clockTime.setOnClickListener{clockTime.isChecked=true;relative.isChecked=false;updateMode()}
+  var adjusting=false
+  h.setOnValueChangedListener{_,_,_->if(!adjusting&&!clockTime.isChecked){adjusting=true;val total=(h.value*60+m.value).coerceIn(0,360);h.value=total/60;m.value=total%60;adjusting=false}}
+  m.setOnValueChangedListener{_,old,v->if(!adjusting){adjusting=true;if(clockTime.isChecked){if(old==0&&v==59)h.value=(h.value+23)%24 else if(old==59&&v==0)h.value=(h.value+1)%24}else{var total=h.value*60+v;if(old==0&&v==59)total=h.value*60-1 else if(old==59&&v==0)total=(h.value+1)*60;total=total.coerceIn(0,360);h.value=total/60;m.value=total%60};adjusting=false}}
   AlertDialog.Builder(this).setTitle("הגדרת זמן").setView(content).setNegativeButton("ביטול",null).setPositiveButton("אישור"){_,_->val minutes=h.value*60L+m.value;val elapsed=if(clockTime.isChecked){val cal=java.util.Calendar.getInstance();cal.set(java.util.Calendar.HOUR_OF_DAY,h.value);cal.set(java.util.Calendar.MINUTE,m.value);cal.set(java.util.Calendar.SECOND,0);cal.set(java.util.Calendar.MILLISECOND,0);var at=cal.timeInMillis;if(at>System.currentTimeMillis())at-=TimeUnit.DAYS.toMillis(1);(System.currentTimeMillis()-at).coerceAtLeast(0L)}else TimeUnit.MINUTES.toMillis(minutes);onSelected(elapsed)}.show()
  }
 
@@ -303,7 +306,7 @@ private fun peopleAccordion(parent:LinearLayout){
      var lock=false
      fun commit(){val total=(h.value*60+m.value).coerceIn(1,360);lock=true;h.value=total/60;m.value=total%60;lock=false;onChange(total*60000L)}
      h.setOnValueChangedListener{_,_,_->if(!lock)commit()}
-     m.setOnValueChangedListener{_,old,v->if(!lock){var total=h.value*60+v;if(old==0&&v==59)total=h.value*60-1 else if(old==59&&v==0)total=h.value*60+1;total=total.coerceIn(1,360);lock=true;h.value=total/60;m.value=total%60;lock=false;onChange(total*60000L)}}
+     m.setOnValueChangedListener{_,old,v->if(!lock){var total=h.value*60+v;if(old==0&&v==59)total=h.value*60-1 else if(old==59&&v==0)total=(h.value+1)*60;total=total.coerceIn(1,360);lock=true;h.value=total/60;m.value=total%60;lock=false;onChange(total*60000L)}}
      tile.addView(TextView(this).apply{text=title;textSize=13f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER;setPadding(0,dp(8),0,dp(2))})
      row.addView(h,LinearLayout.LayoutParams(0,dp(150),1f));row.addView(TextView(this).apply{text=":";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(20),dp(150)));row.addView(m,LinearLayout.LayoutParams(0,dp(150),1f));tile.addView(row,LinearLayout.LayoutParams(-1,dp(150)))
     }
@@ -333,7 +336,7 @@ private fun section(r:LinearLayout,g:String,title:String,content:LinearLayout.()
   var adjusting=false
   fun savePicker(){val total=(hours.value*60+minutes.value).coerceIn(1,360);adjusting=true;hours.value=total/60;minutes.value=total%60;adjusting=false;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}
   hours.setOnValueChangedListener{_,_,_->if(!adjusting)savePicker()}
-  minutes.setOnValueChangedListener{_,old,v->if(!adjusting){var total=hours.value*60+v;if(old==0&&v==59)total=hours.value*60-1 else if(old==59&&v==0)total=hours.value*60+1;total=total.coerceIn(1,360);adjusting=true;hours.value=total/60;minutes.value=total%60;adjusting=false;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}}
+  minutes.setOnValueChangedListener{_,old,v->if(!adjusting){var total=hours.value*60+v;if(old==0&&v==59)total=hours.value*60-1 else if(old==59&&v==0)total=(hours.value+1)*60;total=total.coerceIn(1,360);adjusting=true;hours.value=total/60;minutes.value=total%60;adjusting=false;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}}
   if(hours.value==0&&minutes.value==0)minutes.value=1;box.addView(summary)
   val quick=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
   fun setMinutes(total:Int){val safe=total.coerceIn(1,360);hours.value=safe/60;minutes.maxValue=59;minutes.value=safe%60;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}
