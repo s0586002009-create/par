@@ -34,7 +34,7 @@ private class TimerWidgetFactory(private val c:Context):RemoteViewsService.Remot
   val fill=Intent().putExtra("timer_id",t.id).putExtra("timer_name",t.name)
   v.setOnClickFillInIntent(R.id.row_root,Intent(fill).setAction("open_timer"))
   v.setOnClickFillInIntent(R.id.row_stop,Intent(fill).setAction("stop_timer").putExtra("source","widget"))
-  applyWidgetTheme(v,c,true)
+  WidgetUpdater.applyWidgetTheme(v,c,true)
   return v
  }
  override fun getLoadingView():RemoteViews?=RemoteViews(c.packageName,R.layout.timer_widget_row)
