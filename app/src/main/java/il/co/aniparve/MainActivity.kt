@@ -88,17 +88,28 @@ class MainActivity : AppCompatActivity() {
   val name=EditText(this).apply{hint="שם אחר (לא חובה)";setSingleLine(true)}
   box.addView(name,LinearLayout.LayoutParams(-1,dp(48)))
   val people=TimerStore.people(this);var person:ParvePerson?=null
-  if(people.isNotEmpty()){space(box,6);label(box,"בחירת שם קבוע",13f,muted,true,Gravity.START);val chips=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL}
-   people.forEach{pp->chips.addView(outlineButton(pp.name,copper){person=pp;name.setText(pp.name)},LinearLayout.LayoutParams(-2,dp(40)).apply{marginEnd=dp(5)})}
-   box.addView(HorizontalScrollView(this).apply{isHorizontalScrollBarEnabled=false;addView(chips)},LinearLayout.LayoutParams(-1,dp(45)))
+  if(people.isNotEmpty()){space(box,6);label(box,"בחירת שם קבוע",13f,muted,true,Gravity.START)
+   val chips=FlowChipLayout(this).apply{layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val personButtons=mutableListOf<Pair<TextView,ParvePerson>>()
+   people.forEach{pp->val b=outlineButton(pp.name,copper){person=pp;name.setText(pp.name);personButtons.forEach{(v,p0)->v.background=chipBackground(p0==pp);v.setTextColor(if(p0==pp)Color.WHITE else copper)}}
+    b.textSize=13f;chips.addView(b,FlowChipLayout.LayoutParams(-2,dp(38)));personButtons.add(b to pp)}
+   box.addView(chips,LinearLayout.LayoutParams(-1,-2))
   }
   space(box,8);label(box,"סיימתי לאכול לפני...",14f,ink,true,Gravity.START)
   val opts=listOf("עכשיו" to 0L,"15 דקות" to 15L,"30 דקות" to 30L,"שעה" to 60L,"שעה וחצי" to 90L,"שעתיים" to 120L,"3 שעות" to 180L,"4 שעות" to 240L,"6 שעות" to 360L)
   var elapsed=0L
-  val row=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL}
-  opts.forEach{(title,mins)->row.addView(outlineButton(title,copper){elapsed=mins*60000L},LinearLayout.LayoutParams(-2,dp(38)).apply{marginEnd=dp(4)})}
-  val other=outlineButton("אחר",copper){val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=12};val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59};val w=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;addView(h,LinearLayout.LayoutParams(0,dp(176),1f));addView(m,LinearLayout.LayoutParams(0,dp(176),1f))};AlertDialog.Builder(this).setTitle("כמה זמן עבר?").setView(w).setPositiveButton("אישור"){_,_->elapsed=(h.value*60L+m.value)*60000L}.setNegativeButton("ביטול",null).show()}
-  row.addView(other);box.addView(HorizontalScrollView(this).apply{isHorizontalScrollBarEnabled=false;addView(row)},LinearLayout.LayoutParams(-1,dp(46)))
+  val row=FlowChipLayout(this).apply{layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  val elapsedButtons=mutableListOf<Pair<TextView,Long>>()
+  fun selectElapsed(value:Long){elapsed=value;elapsedButtons.forEach{(v,m)->v.background=chipBackground(m==value);v.setTextColor(if(m==value)Color.WHITE else copper)}}
+  opts.forEach{(title,mins)->val b=outlineButton(title,copper){selectElapsed(mins*60000L)};b.textSize=13f;row.addView(b,FlowChipLayout.LayoutParams(-2,dp(38)));elapsedButtons.add(b to mins*60000L)}
+  val other=outlineButton("אחר",copper){showElapsedPicker{selectElapsed(it)}}
+  other.textSize=13f;row.addView(other,FlowChipLayout.LayoutParams(-2,dp(38)))
+  box.addView(row,LinearLayout.LayoutParams(-1,-2))
+  val selectedSummary=TextView(this).apply{text="נבחר: עכשיו";textSize=12f;setTextColor(muted);gravity=Gravity.START;setPadding(0,dp(5),0,0)}
+  box.addView(selectedSummary)
+  // Keep the chosen preset visibly selected and summarize it for clarity.
+  val originalSelect = ::selectElapsed
+  selectElapsed(0L)
   val dlg=AlertDialog.Builder(this).setTitle(if(type=="meat")"סיימתי לאכול בשרי" else "סיימתי לאכול חלבי").setView(box).setNegativeButton("ביטול",null).setPositiveButton("התחל",null).create()
   dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
    val n=name.text.toString().trim().ifBlank{person?.name?:"אני"};val dur=(if(type=="meat")person?.meatWait else person?.dairyWait)?:TimerStore.duration(this,type)
@@ -110,6 +121,18 @@ class MainActivity : AppCompatActivity() {
   }}
   dlg.show()
  }
+ private fun chipBackground(selected:Boolean)=GradientDrawable().apply{cornerRadius=dp(20).toFloat();setColor(if(selected)copper else card);setStroke(dp(1),copper)}
+ private fun showElapsedPicker(onSelected:(Long)->Unit){val tabs=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL};val content=LinearLayout(this).apply{orientation=1;setPadding(dp(16),dp(10),dp(16),dp(8))}
+  val relative=RadioButton(this).apply{text="משך זמן";isChecked=true};val clockTime=RadioButton(this).apply{text="שעת סיום האכילה"}
+  tabs.addView(relative,LinearLayout.LayoutParams(0,-2,1f));tabs.addView(clockTime,LinearLayout.LayoutParams(0,-2,1f));content.addView(tabs)
+  val wheels=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
+  val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=23};val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59}
+  wheels.addView(h,LinearLayout.LayoutParams(0,dp(160),1f));wheels.addView(m,LinearLayout.LayoutParams(0,dp(160),1f));content.addView(wheels)
+  fun updateMode(){val isClock=clockTime.isChecked;h.maxValue=if(isClock)23 else 12;h.value=0;m.value=0}
+  relative.setOnClickListener{relative.isChecked=true;clockTime.isChecked=false;updateMode()};clockTime.setOnClickListener{clockTime.isChecked=true;relative.isChecked=false;updateMode()}
+  AlertDialog.Builder(this).setTitle("הגדרת זמן").setView(content).setNegativeButton("ביטול",null).setPositiveButton("אישור"){_,_->val minutes=h.value*60L+m.value;val elapsed=if(clockTime.isChecked){val cal=java.util.Calendar.getInstance();cal.set(java.util.Calendar.HOUR_OF_DAY,h.value);cal.set(java.util.Calendar.MINUTE,m.value);cal.set(java.util.Calendar.SECOND,0);cal.set(java.util.Calendar.MILLISECOND,0);var at=cal.timeInMillis;if(at>System.currentTimeMillis())at-=TimeUnit.DAYS.toMillis(1);(System.currentTimeMillis()-at).coerceAtLeast(0L)}else TimeUnit.MINUTES.toMillis(minutes);onSelected(elapsed)}.show()
+ }
+
  private fun peopleDialog(){val people=TimerStore.people(this);val names=people.map{it.name}.toMutableList().apply{add("+ הוספת שם")}.toTypedArray()
   AlertDialog.Builder(this).setTitle("אנשים").setItems(names){_,which->
    if(which==names.lastIndex){editPerson(null)}
