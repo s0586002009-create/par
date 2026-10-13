@@ -6,14 +6,14 @@ import android.view.ViewGroup
 
 /** Small dependency-free wrapping layout for action chips; works on narrow screens too. */
 class FlowChipLayout(context: Context) : ViewGroup(context) {
-    class LayoutParams(width: Int, height: Int) : MarginLayoutParams(width, height) {
+    class LayoutParams(width: Int, height: Int) : ViewGroup.MarginLayoutParams(width, height) {
         constructor(p: ViewGroup.LayoutParams) : super(p)
     }
 
     private val horizontalGap = (6 * resources.displayMetrics.density).toInt()
     private val verticalGap = (6 * resources.displayMetrics.density).toInt()
 
-    override fun generateDefaultLayoutParams() = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+    override fun generateDefaultLayoutParams() = LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
     override fun generateLayoutParams(attrs: android.util.AttributeSet?) = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
     override fun generateLayoutParams(p: ViewGroup.LayoutParams?) = if (p == null) LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT) else LayoutParams(p)
     override fun checkLayoutParams(p: ViewGroup.LayoutParams?) = p is LayoutParams
@@ -29,7 +29,7 @@ class FlowChipLayout(context: Context) : ViewGroup(context) {
             if (child.visibility == View.GONE) continue
             measureChild(child, widthMeasureSpec, heightMeasureSpec)
             val lp = child.layoutParams
-            val margins = lp as? MarginLayoutParams
+            val margins = lp as? ViewGroup.MarginLayoutParams
             val cw = child.measuredWidth + (margins?.let { it.leftMargin + it.rightMargin } ?: 0)
             val ch = child.measuredHeight + (margins?.let { it.topMargin + it.bottomMargin } ?: 0)
             if (x > 0 && x + cw > available) { x = 0; y += lineHeight + verticalGap; lineHeight = 0 }
