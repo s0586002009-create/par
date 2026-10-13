@@ -62,7 +62,7 @@ object WidgetUpdater{
  private fun flags()=PendingIntent.FLAG_UPDATE_CURRENT or if(Build.VERSION.SDK_INT>=23)PendingIntent.FLAG_IMMUTABLE else 0
  private fun pi(c:Context,req:Int,type:String?,timers:Boolean,openSheet:Boolean=false):PendingIntent{
   val i=Intent(c,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-  if(type!=null)i.putExtra("start_type",type);if(openSheet)i.putExtra("open_start_sheet",true);if(timers)i.putExtra("show_timers",true)
+  if(type!=null)i.putExtra("start_type",type);if(req==6)i.putExtra("open_type_picker",true) else if(openSheet)i.putExtra("open_start_sheet",true);if(timers)i.putExtra("show_timers",true)
   return PendingIntent.getActivity(c,req,i,flags())
  }
  private fun minuteTick(c:Context){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;val pi=PendingIntent.getBroadcast(c,7001,Intent(c,TimerWidgetProvider::class.java).setAction(TimerWidgetProvider.TICK),flags());try{if(Build.VERSION.SDK_INT>=23)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)else am.setExact(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)}catch(_:SecurityException){am.set(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)}}
