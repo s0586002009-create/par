@@ -26,8 +26,9 @@ class WheelPicker @JvmOverloads constructor(
         set(v) { field = v; value = value.coerceAtLeast(v); invalidate() }
     var maxValue: Int = 59
         set(v) { field = max(v, minValue); value = value.coerceAtMost(field); invalidate() }
+    private var valueListener: ((WheelPicker, Int, Int) -> Unit)? = null
     var value: Int = 0
-        set(v) { field = v.coerceIn(minValue, maxValue); invalidate() }
+        set(v) { val old = field; field = v.coerceIn(minValue, maxValue); invalidate(); if (old != field) valueListener?.invoke(this, old, field) }
     private var downY = 0f
     private var lastY = 0f
     private var moved = false
@@ -38,6 +39,8 @@ class WheelPicker @JvmOverloads constructor(
         minimumWidth = dp(76f).toInt()
         minimumHeight = dp(176f).toInt()
     }
+
+    fun setOnValueChangedListener(l: ((WheelPicker, Int, Int) -> Unit)?) { valueListener = l }
 
     fun setFormatter(f: ((Int) -> String)?) {
         formatter = f
