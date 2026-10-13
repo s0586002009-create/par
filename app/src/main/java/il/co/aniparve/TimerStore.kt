@@ -22,8 +22,21 @@ object TimerStore{
  fun remove(c:Context,id:Long){save(c,all(c).filterNot{it.id==id})}
  fun pending(c:Context,id:Long):ParveTimer?{val a=all(c);val i=a.indexOfFirst{it.id==id};if(i<0)return null;if(a[i].status=="active"){a[i]=a[i].copy(status="pending");save(c,a)};return a[i]}
  fun duration(c:Context,type:String):Long{val p=p(c);val k=if(type=="meat")"meat" else "dairy";val h=p.getInt(k+"_h",6).coerceIn(0,6);val m=if(h>=6)0 else p.getInt(k+"_m",0).coerceIn(0,59);return (h*60L+m).coerceIn(1L,360L)*60000L}
- fun people(c:Context):MutableList<ParvePerson>{val out=mutableListOf<ParvePerson>();try{val a=JSONArray(p(c).getString("people_json","[]"));for(i in 0 until a.length()){val o=a.getJSONObject(i);out.add(ParvePerson(o.optString("name"),if(o.isNull("meat"))null else o.optLong("meat"),if(o.isNull("dairy"))null else o.optLong("dairy")))}}catch(_:Exception){};if(out.isEmpty()){out.add(ParvePerson("אני",duration(c,"meat").coerceIn(60000L,21600000L),duration(c,"dairy").coerceIn(60000L,21600000L)));savePeople(c,out)}else if(out.none{it.name.equals("אני",true)}){out.add(0,ParvePerson("אני",duration(c,"meat").coerceIn(60000L,21600000L),duration(c,"dairy").coerceIn(60000L,21600000L)));savePeople(c,out)};return out}
- fun savePeople(c:Context,list:List<ParvePerson>){val a=JSONArray();list.forEach{a.put(JSONObject().put("name",it.name).put("meat",it.meatWait?:JSONObject.NULL).put("dairy",it.dairyWait?:JSONObject.NULL))};p(c).edit().putString("people_json",a.toString()).apply()}
+ fun people(c:Context):MutableList<ParvePerson>{
+  val prefs=p(c);val out=mutableListOf<ParvePerson>()
+  try{val a=JSONArray(prefs.getString("people_json","[]"));for(i in 0 until a.length()){val o=a.getJSONObject(i);out.add(ParvePerson(o.optString("name"),if(o.isNull("meat"))null else o.optLong("meat"),if(o.isNull("dairy"))null else o.optLong("dairy")))}}catch(_:Exception){}
+  // Seed the legacy/default person exactly once. Never recreate it because its name changes or it is deleted.
+  if(!prefs.getBoolean("people_initialized",false)){
+   if(out.isEmpty())out.add(ParvePerson("אני",duration(c,"meat").coerceIn(60000L,21600000L),duration(c,"dairy").coerceIn(60000L,21600000L)))
+   savePeople(c,out)
+   prefs.edit().putBoolean("people_initialized",true).apply()
+  }
+  return out
+ }
+ fun savePeople(c:Context,list:List<ParvePerson>){
+  val a=JSONArray();list.forEach{a.put(JSONObject().put("name",it.name).put("meat",it.meatWait?:JSONObject.NULL).put("dairy",it.dairyWait?:JSONObject.NULL))}
+  p(c).edit().putString("people_json",a.toString()).putBoolean("people_initialized",true).apply()
+ }
  fun newId(c:Context)=maxOf(System.currentTimeMillis(),(all(c).maxOfOrNull{it.id}?:0L)+1L)
 }
 object TimerNotifications{
