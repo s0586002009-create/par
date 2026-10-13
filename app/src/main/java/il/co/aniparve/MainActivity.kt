@@ -144,7 +144,7 @@ class MainActivity : AppCompatActivity() {
   val relative=RadioButton(this).apply{text="משך זמן";isChecked=true};val clockTime=RadioButton(this).apply{text="שעת סיום האכילה"}
   tabs.addView(relative,LinearLayout.LayoutParams(0,-2,1f));tabs.addView(clockTime,LinearLayout.LayoutParams(0,-2,1f));content.addView(tabs)
   val wheels=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
-  val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=23;value=0};val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59;value=0}
+  val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=23;value=0};val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59;value=0;cyclic=true}
   wheels.addView(h,LinearLayout.LayoutParams(0,dp(160),1f));wheels.addView(m,LinearLayout.LayoutParams(0,dp(160),1f));content.addView(wheels)
   fun updateMode(){val isClock=clockTime.isChecked;val cal=java.util.Calendar.getInstance();h.maxValue=if(isClock)23 else 6;h.value=if(isClock)cal.get(java.util.Calendar.HOUR_OF_DAY) else 0;m.value=if(isClock)cal.get(java.util.Calendar.MINUTE) else 0}
   relative.setOnClickListener{relative.isChecked=true;clockTime.isChecked=false;updateMode()};clockTime.setOnClickListener{clockTime.isChecked=true;relative.isChecked=false;updateMode()}
@@ -327,7 +327,7 @@ private fun section(r:LinearLayout,g:String,title:String,content:LinearLayout.()
   box.addView(TextView(this).apply{text=title;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});space(box,10)
   val wheels=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
   fun picker(max:Int,value:Int)=WheelPicker(this).apply{minValue=0;maxValue=max;this.value=value;setFormatter{v->String.format(Locale.US,"%02d",v)}}
-  val hours=picker(6,p.getInt(key+"_h",6).coerceIn(0,6));val minutes=picker(59,p.getInt(key+"_m",0).coerceIn(0,59))
+  val hours=picker(6,p.getInt(key+"_h",6).coerceIn(0,6));val minutes=picker(59,p.getInt(key+"_m",0).coerceIn(0,59)).apply{cyclic=true}
   val hourCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(hours,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="שעות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
   val minCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(minutes,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="דקות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
   wheels.addView(hourCol);wheels.addView(TextView(this).apply{text=":";textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))},LinearLayout.LayoutParams(dp(28),dp(176)));wheels.addView(minCol);box.addView(wheels,LinearLayout.LayoutParams(-1,-2))
