@@ -105,10 +105,7 @@ class MainActivity : AppCompatActivity() {
   val other=outlineButton("אחר",copper){showElapsedPicker{selectElapsed(it)}}
   other.textSize=13f;row.addView(other,FlowChipLayout.LayoutParams(-2,dp(38)))
   box.addView(row,LinearLayout.LayoutParams(-1,-2))
-  val selectedSummary=TextView(this).apply{text="נבחר: עכשיו";textSize=12f;setTextColor(muted);gravity=Gravity.START;setPadding(0,dp(5),0,0)}
-  box.addView(selectedSummary)
-  // Keep the chosen preset visibly selected and summarize it for clarity.
-  val originalSelect = ::selectElapsed
+  // The selected preset is highlighted so the current choice is always clear.
   selectElapsed(0L)
   val dlg=AlertDialog.Builder(this).setTitle(if(type=="meat")"סיימתי לאכול בשרי" else "סיימתי לאכול חלבי").setView(box).setNegativeButton("ביטול",null).setPositiveButton("התחל",null).create()
   dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
