@@ -299,10 +299,11 @@ private fun peopleAccordion(parent:LinearLayout){
     fun picker(title:String,start:Long,onChange:(Long)->Unit){
      val h0=(start/3600000L).toInt().coerceIn(0,6);val m0=((start%3600000L)/60000L).toInt().coerceIn(0,59);val row=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
      val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=6;value=h0;setFormatter{String.format(Locale.US,"%02d",it)}}
-     val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=if(h0==6)0 else 59;value=if(h0==6)0 else m0;cyclic=true;setFormatter{String.format(Locale.US,"%02d",it)}}
+     val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59;value=m0.coerceIn(0,59);cyclic=true;setFormatter{String.format(Locale.US,"%02d",it)}}
      var lock=false
-     h.setOnValueChangedListener{_,_,v->if(!lock){lock=true;m.maxValue=if(v==6)0 else 59;if(v==6)m.value=0;if(v==0&&m.value==0)m.value=1;lock=false;onChange((h.value*60L+m.value).coerceIn(1,360)*60000L)}}
-     m.setOnValueChangedListener{_,old,v->if(!lock){lock=true;if(old==0&&v==59){if(h.value>0)h.value-- else m.value=1}else if(old==59&&v==0){if(h.value<6)h.value++ else m.value=0};m.maxValue=if(h.value==6)0 else 59;if(h.value==6)m.value=0;if(h.value==0&&m.value==0)m.value=1;lock=false;onChange((h.value*60L+m.value).coerceIn(1,360)*60000L)}}
+     fun commit(){val total=(h.value*60+m.value).coerceIn(1,360);lock=true;h.value=total/60;m.value=total%60;lock=false;onChange(total*60000L)}
+     h.setOnValueChangedListener{_,_,_->if(!lock)commit()}
+     m.setOnValueChangedListener{_,old,v->if(!lock){var total=h.value*60+v;if(old==0&&v==59)total=h.value*60-1 else if(old==59&&v==0)total=h.value*60+1;total=total.coerceIn(1,360);lock=true;h.value=total/60;m.value=total%60;lock=false;onChange(total*60000L)}}
      tile.addView(TextView(this).apply{text=title;textSize=13f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER;setPadding(0,dp(8),0,dp(2))})
      row.addView(h,LinearLayout.LayoutParams(0,dp(150),1f));row.addView(TextView(this).apply{text=":";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(20),dp(150)));row.addView(m,LinearLayout.LayoutParams(0,dp(150),1f));tile.addView(row,LinearLayout.LayoutParams(-1,dp(150)))
     }
@@ -323,15 +324,19 @@ private fun section(r:LinearLayout,g:String,title:String,content:LinearLayout.()
   box.addView(TextView(this).apply{text=title;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});space(box,10)
   val wheels=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
   fun picker(max:Int,value:Int)=WheelPicker(this).apply{minValue=0;maxValue=max;this.value=value;setFormatter{v->String.format(Locale.US,"%02d",v)}}
-  val hours=picker(6,p.getInt(key+"_h",6).coerceIn(0,6));val minutes=picker(if(hours.value>=6)0 else 59,p.getInt(key+"_m",0).coerceIn(0,59))
+  val hours=picker(6,p.getInt(key+"_h",6).coerceIn(0,6));val minutes=picker(59,p.getInt(key+"_m",0).coerceIn(0,59))
   val hourCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(hours,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="שעות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
   val minCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(minutes,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="דקות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
   wheels.addView(hourCol);wheels.addView(TextView(this).apply{text=":";textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))},LinearLayout.LayoutParams(dp(28),dp(176)));wheels.addView(minCol);box.addView(wheels,LinearLayout.LayoutParams(-1,-2))
   val summary=TextView(this).apply{text=durationText(hours.value,minutes.value);textSize=12f;setTextColor(muted);gravity=Gravity.CENTER;setPadding(0,dp(8),0,0)}
   fun update(){summary.text=durationText(hours.value,minutes.value)}
-  hours.setOnValueChangedListener{_,_,v->minutes.maxValue=if(v>=6)0 else 59;if(v>=6)minutes.value=0;if(v==0&&minutes.value==0)minutes.value=1;p.edit().putInt(key+"_h",v).putInt(key+"_m",minutes.value).apply();update()};minutes.setOnValueChangedListener{_,_,v->if(hours.value==0&&v==0)minutes.value=1;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()};if(hours.value==0&&minutes.value==0)minutes.value=1;box.addView(summary)
+  var adjusting=false
+  fun savePicker(){val total=(hours.value*60+minutes.value).coerceIn(1,360);adjusting=true;hours.value=total/60;minutes.value=total%60;adjusting=false;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}
+  hours.setOnValueChangedListener{_,_,_->if(!adjusting)savePicker()}
+  minutes.setOnValueChangedListener{_,old,v->if(!adjusting){var total=hours.value*60+v;if(old==0&&v==59)total=hours.value*60-1 else if(old==59&&v==0)total=hours.value*60+1;total=total.coerceIn(1,360);adjusting=true;hours.value=total/60;minutes.value=total%60;adjusting=false;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}}
+  if(hours.value==0&&minutes.value==0)minutes.value=1;box.addView(summary)
   val quick=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
-  fun setMinutes(total:Int){val safe=total.coerceIn(1,360);hours.value=safe/60;minutes.maxValue=if(hours.value>=6)0 else 59;minutes.value=safe%60;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}
+  fun setMinutes(total:Int){val safe=total.coerceIn(1,360);hours.value=safe/60;minutes.maxValue=59;minutes.value=safe%60;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}
   quick.addView(outlineButton("− 30 דקות",muted){setMinutes(hours.value*60+minutes.value-30)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginEnd=dp(6)})
   quick.addView(outlineButton("+ 30 דקות",copper){setMinutes(hours.value*60+minutes.value+30)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(6)})
   box.addView(quick,LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(8)});parent.addView(box,LinearLayout.LayoutParams(-1,-2))
