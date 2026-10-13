@@ -6,6 +6,7 @@
   <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
   <receiver android:name=".TimerReceiver" android:exported="false"/>
   <receiver android:name=".BootReceiver" android:enabled="true" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
+  <service android:name=".widget.TimerWidgetService" android:permission="android.permission.BIND_REMOTEVIEWS" android:exported="false"/>
   <receiver android:name=".widget.TimerWidgetProvider" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/timer_widget_info"/></receiver>
  </application>
 </manifest>
