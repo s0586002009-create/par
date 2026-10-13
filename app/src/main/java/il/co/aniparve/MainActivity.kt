@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
   row.addView(brand,LinearLayout.LayoutParams(0,dp(48),1f));row.addView(Space(this),LinearLayout.LayoutParams(dp(48),dp(48)));r.addView(row,LinearLayout.LayoutParams(-1,dp(52)))
  }
  private fun iconBtn(g:String,desc:String,action:()->Unit)=TextView(this).apply{text=g;contentDescription=desc;textSize=26f;gravity=Gravity.CENTER;setTextColor(ink);background=solid(card,18);elevation=dp(2).toFloat();isClickable=true;setOnClickListener{action()}}.also{}
- private fun home(){val r=root();toolbar(r);val activeCount=TimerStore.all(this).count{it.status=="active"};if(activeCount>0){space(r,8);r.addView(outlineButton("יש "+activeCount+" טיימרים פעילים  ›",copper){screen="timer";draw()},LinearLayout.LayoutParams(-1,dp(40)))};space(r,24);label(r,"מה סיימת לאכול?",32f,ink,true);space(r,6);label(r,"בחרו כדי להתחיל טיימר",16f,muted);space(r,28)
+ private fun home(){val r=root();toolbar(r);val activeCount=TimerStore.all(this).count{it.status=="active"};if(activeCount>0){space(r,8);r.addView(outlineButton("יש "+activeCount+" טיימרים פעילים  ›",copper){screen="timer";draw()},LinearLayout.LayoutParams(-1,dp(40)))};space(r,24);r.addView(TextView(this).apply{text="מה סיימת לאכול?";textSize=26f;maxLines=1;setTextColor(ink);typeface=Typeface.DEFAULT_BOLD;gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,-2));space(r,6);label(r,"בחרו כדי להתחיל טיימר",16f,muted);space(r,28)
   val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
   row.addView(food("🧀","חלבי","dairy"),LinearLayout.LayoutParams(0,dp(228),1f).apply{marginEnd=dp(8)});row.addView(food("🥩","בשרי","meat"),LinearLayout.LayoutParams(0,dp(228),1f).apply{marginStart=dp(8)});r.addView(row)
   space(r,22);panel(r){orientation=0;gravity=Gravity.CENTER_VERTICAL
@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
   val relative=RadioButton(this).apply{text="משך זמן";isChecked=true};val clockTime=RadioButton(this).apply{text="שעת סיום האכילה"}
   tabs.addView(relative,LinearLayout.LayoutParams(0,-2,1f));tabs.addView(clockTime,LinearLayout.LayoutParams(0,-2,1f));content.addView(tabs)
   val wheels=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
-  val nowCal=java.util.Calendar.getInstance();val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=23;value=nowCal.get(java.util.Calendar.HOUR_OF_DAY)};val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59;value=nowCal.get(java.util.Calendar.MINUTE)}
+  val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=23;value=0};val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59;value=0}
   wheels.addView(h,LinearLayout.LayoutParams(0,dp(160),1f));wheels.addView(m,LinearLayout.LayoutParams(0,dp(160),1f));content.addView(wheels)
   fun updateMode(){val isClock=clockTime.isChecked;val cal=java.util.Calendar.getInstance();h.maxValue=if(isClock)23 else 6;h.value=if(isClock)cal.get(java.util.Calendar.HOUR_OF_DAY) else 0;m.value=if(isClock)cal.get(java.util.Calendar.MINUTE) else 0}
   relative.setOnClickListener{relative.isChecked=true;clockTime.isChecked=false;updateMode()};clockTime.setOnClickListener{clockTime.isChecked=true;relative.isChecked=false;updateMode()}

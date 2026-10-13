@@ -36,7 +36,7 @@ jobs:
         env:
           ANI_PARVE_STORE_PASSWORD: AniParveRelease2026
           ANI_PARVE_KEY_PASSWORD: AniParveRelease2026
-        run: gradle assembleRelease --no-daemon
+        run: gradle lint assembleRelease --no-daemon
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk ani-parve.apk
       - name: Upload APK artifact
@@ -52,7 +52,7 @@ jobs:
           name: אני פרווה - Build ${{ github.run_number }}
           files: ani-parve.apk
           body: |
-            ## אני פרווה 2.2.0
+            ## אני פרווה 2.2.1
             - שמות קבועים: שם ברירת מחדל "אני", הוספה, שינוי שם והגדרות המתנה אישיות לכל שם.
             - תיקון פריסת צ'יפים: טקסט בשורה אחת, ריווח אחיד ותמיכה במסכים צרים.
             - הגבלת זמני ההמתנה ל-6 שעות לכל היותר, ללא זמן אפס.
