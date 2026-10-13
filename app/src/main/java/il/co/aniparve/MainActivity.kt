@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
  private val p by lazy { getSharedPreferences("ani_parve", MODE_PRIVATE) }
+ private var toolbarHost:LinearLayout?=null
  private var screen="home"; private var tick:CountDownTimer?=null; private val uiHandler=Handler(Looper.getMainLooper()); private var uiTick:Runnable?=null
  private var clock:TextView?=null; private var pct:TextView?=null; private var ring:RingView?=null; private var bar:ProgressBar?=null
  private val dark get()=when(p.getString("theme","system")){"dark"->true;"light"->false;else->(resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES}
@@ -52,9 +53,12 @@ class MainActivity : AppCompatActivity() {
  private fun dp(n:Int)=(n*resources.displayMetrics.density).toInt()
  private fun ripple()=if(Build.VERSION.SDK_INT>=21)android.util.TypedValue().let{android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33B26A2B),null,null)}else null
  private fun root():LinearLayout{
+ val outer=LinearLayout(this).apply{orientation=1;background=solid(bg,0);layoutDirection=View.LAYOUT_DIRECTION_RTL}
+ val fixed=LinearLayout(this).apply{orientation=1;setPadding(dp(20),dp(6),dp(20),dp(4));background=solid(bg,0);elevation=dp(3).toFloat()}
+ toolbarHost=fixed
  val body=LinearLayout(this).apply{orientation=1;setPadding(dp(20),dp(12),dp(20),dp(24));background=solid(bg,0);layoutDirection=View.LAYOUT_DIRECTION_RTL}
  val scroll=ScrollView(this).apply{isFillViewport=true;clipToPadding=false;addView(body,ViewGroup.LayoutParams(-1,-2));background=solid(bg,0)}
- val frame=FrameLayout(this);frame.addView(scroll,FrameLayout.LayoutParams(-1,-1));setContentView(frame)
+ outer.addView(fixed,LinearLayout.LayoutParams(-1,-2));outer.addView(scroll,LinearLayout.LayoutParams(-1,0,1f));setContentView(outer)
  body.alpha=0f;body.animate().alpha(1f).setDuration(220).setInterpolator(AccelerateDecelerateInterpolator()).start();return body
 }
  private fun space(parent:LinearLayout,n:Int){parent.addView(Space(this),LinearLayout.LayoutParams(1,dp(n)))}
@@ -64,7 +68,7 @@ class MainActivity : AppCompatActivity() {
   val brand=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_RTL}
   brand.addView(ImageView(this).apply{try{setImageResource(R.mipmap.ic_launcher)}catch(_:Exception){};scaleType=ImageView.ScaleType.FIT_CENTER},LinearLayout.LayoutParams(dp(34),dp(34)).apply{marginStart=dp(7)})
   brand.addView(TextView(this).apply{text=title?:"אני פרווה";textSize=19f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER_VERTICAL})
-  row.addView(brand,LinearLayout.LayoutParams(0,dp(48),1f));row.addView(Space(this),LinearLayout.LayoutParams(dp(48),dp(48)));r.addView(row,LinearLayout.LayoutParams(-1,dp(52)))
+  row.addView(brand,LinearLayout.LayoutParams(0,dp(48),1f));row.addView(Space(this),LinearLayout.LayoutParams(dp(48),dp(48)));(toolbarHost?:r).addView(row,LinearLayout.LayoutParams(-1,dp(52)))
  }
  private fun iconBtn(g:String,desc:String,action:()->Unit)=TextView(this).apply{text=g;contentDescription=desc;textSize=26f;gravity=Gravity.CENTER;setTextColor(ink);background=solid(card,18);elevation=dp(2).toFloat();isClickable=true;setOnClickListener{action()}}.also{}
  private fun home(){val r=root();toolbar(r);val activeCount=TimerStore.all(this).count{it.status=="active"};if(activeCount>0){space(r,8);r.addView(outlineButton("יש "+activeCount+" טיימרים פעילים  ›",copper){screen="timer";draw()},LinearLayout.LayoutParams(-1,dp(40)))};space(r,24);r.addView(TextView(this).apply{text="מה סיימת לאכול?";textSize=22f;maxLines=1;isSingleLine=true;if(Build.VERSION.SDK_INT>=26)setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);setTextColor(ink);typeface=Typeface.DEFAULT_BOLD;gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,-2));space(r,6);label(r,"בחרו כדי להתחיל טיימר",16f,muted);space(r,28)
@@ -166,7 +170,7 @@ class MainActivity : AppCompatActivity() {
    header.addView(arrow,LinearLayout.LayoutParams(dp(32),dp(44)));tile.addView(header)
    val actions=LinearLayout(this).apply{orientation=0;visibility=View.GONE;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(8),0,0)}
    actions.addView(outlineButton("עריכה",copper){peopleDialogRef?.dismiss();editPerson(person)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginEnd=dp(5)})
-   actions.addView(outlineButton("מחיקה",red){AlertDialog.Builder(this@MainActivity).setTitle("מחיקת שם").setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this@MainActivity,TimerStore.people(this@MainActivity).filterNot{it.name==person.name});peopleDialogRef?.dismiss();peopleDialog()}.show()},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(5)})
+   actions.addView(outlineButton("מחיקה",red){val current=TimerStore.people(this@MainActivity);if(current.size<=1){Toast.makeText(this@MainActivity,"חייב להישאר לפחות אדם אחד",Toast.LENGTH_SHORT).show()}else AlertDialog.Builder(this@MainActivity).setTitle("מחיקת שם").setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this@MainActivity,current.filterNot{it.name==person.name});peopleDialogRef?.dismiss();peopleDialog()}.show()},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(5)})
    tile.addView(actions);header.setOnClickListener{val expanded=actions.visibility!=View.VISIBLE;actions.visibility=if(expanded)View.VISIBLE else View.GONE;arrow.text=if(expanded)"⌃" else "⌄"}
    list.addView(tile,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
   }
@@ -186,9 +190,9 @@ class MainActivity : AppCompatActivity() {
    box.addView(row)
    AlertDialog.Builder(this).setTitle(if(old==null)"הוספת שם" else "עריכת שם").setView(box).setNegativeButton("ביטול",null).setPositiveButton("שמירה"){_,_->
     val n=name.text.toString().trim();if(n.isBlank())return@setPositiveButton
-    val list=TimerStore.people(this).filterNot{it.name.equals(old?.name,true)}.toMutableList()
-    if(list.any{it.name.equals(n,true)}){Toast.makeText(this,"השם כבר קיים",Toast.LENGTH_SHORT).show();return@setPositiveButton}
-    list.add(ParvePerson(n,meat.value.coerceIn(1,360)*60000L,dairy.value.coerceIn(1,360)*60000L));TimerStore.savePeople(this,list);peopleDialog()
+    val list=TimerStore.people(this).toMutableList();val index=if(old==null)-1 else list.indexOfFirst{it.name.equals(old.name,true)}
+    if(list.indices.any{it!=index&&list[it].name.equals(n,true)}){Toast.makeText(this,"השם כבר קיים",Toast.LENGTH_SHORT).show();return@setPositiveButton}
+    val updated=ParvePerson(n,meat.value.coerceIn(1,360)*60000L,dairy.value.coerceIn(1,360)*60000L);if(index>=0)list[index]=updated else list.add(updated);TimerStore.savePeople(this,list);peopleDialog()
    }.show()
   }
   private fun pinWidget(){if(Build.VERSION.SDK_INT>=26){val m=AppWidgetManager.getInstance(this);if(m.isRequestPinAppWidgetSupported){m.requestPinAppWidget(ComponentName(this,il.co.aniparve.widget.TimerWidgetProvider::class.java),null,null);return}};AlertDialog.Builder(this).setTitle("הוספת וידג'ט").setMessage("לחצו לחיצה ארוכה על מסך הבית ← וידג'טים ← אני פרווה").setPositiveButton("הבנתי",null).show()}
@@ -202,7 +206,7 @@ class MainActivity : AppCompatActivity() {
   r.addView(bar,LinearLayout.LayoutParams(-1,dp(10)).apply{topMargin=dp(14)})
   pct=TextView(this).apply{textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(accent);gravity=Gravity.CENTER;setPadding(0,dp(12),0,dp(8))};r.addView(pct)
   val endLabel=TextView(this).apply{text=(active.firstOrNull()?.let{if(it.name=="אני")endPhrase(it.endAt) else it.name+" פרווה "+endPhrase(it.endAt).removePrefix("אהיה פרווה ")}?:"");textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))};r.addView(endLabel);active.firstOrNull()?.takeIf{it.ateAt>0}?.let{label(r,"סיימתי לאכול בשעה "+DateFormat.getTimeFormat(this).format(java.util.Date(it.ateAt)),12f,muted)}
-  val actions=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR};actions.addView(primaryButton("+"){chooseTimerType()},LinearLayout.LayoutParams(dp(54),dp(54)));actions.addView(outlineButton("עצור",red){val d=AlertDialog.Builder(this).setTitle("עצירת הטיימר").setMessage("להפסיק את הטיימר של "+(TimerStore.all(this).filter{it.status=="active"}.minByOrNull{it.endAt}?.name?:"אני")+"?").setNegativeButton("לא",null).setPositiveButton("כן"){_,_->cancel();screen="home";draw()}.create();d.setOnShowListener{d.getButton(-1)?.setTextColor(red);d.getButton(-2)?.setTextColor(ink)};d.show()},LinearLayout.LayoutParams(0,dp(54),1f).apply{marginStart=dp(10)});r.addView(actions,LinearLayout.LayoutParams(-1,-2))
+  val actions=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR};actions.addView(primaryButton("+"){chooseTimerType()},LinearLayout.LayoutParams(dp(54),dp(54)));actions.addView(outlineButton("עצור",red){TimerStore.all(this).firstOrNull{it.status=="active"}?.let{confirmStop(it)}},LinearLayout.LayoutParams(0,dp(54),1f).apply{marginStart=dp(10)});r.addView(actions,LinearLayout.LayoutParams(-1,-2))
   startTick()
  }
  private fun startTick(){val end=p.getLong("end",0);val duration=p.getLong("duration",1).coerceAtLeast(1)
@@ -252,7 +256,8 @@ class MainActivity : AppCompatActivity() {
  private fun leftText(end:Long):String{val ms=(end-System.currentTimeMillis()).coerceAtLeast(0L);return String.format(Locale.getDefault(),"%02d:%02d:%02d",TimeUnit.MILLISECONDS.toHours(ms),TimeUnit.MILLISECONDS.toMinutes(ms)%60,TimeUnit.MILLISECONDS.toSeconds(ms)%60)}
  private fun endPhrase(end:Long):String{val now=java.util.Date();val date=java.util.Date(end);val f=java.text.SimpleDateFormat("yyyyMMdd",Locale.getDefault());val day=when{f.format(now)==f.format(date)->"";f.format(java.util.Date(now.time+86400000L))==f.format(date)->"מחר ";else->"ביום "+java.text.SimpleDateFormat("EEEE",Locale.getDefault()).format(date)+" "};return (if(day.isBlank())"אהיה פרווה " else day+"אהיה פרווה ")+"בשעה "+DateFormat.getTimeFormat(this).format(date)}
  private fun <T:View> findViewWithTag(tag:Any):T?{fun find(v:View):View?{if(v.tag==tag)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};return find(window.decorView) as? T}
- private fun confirmStop(t:ParveTimer){AlertDialog.Builder(this).setTitle("עצירת טיימר").setMessage("להפסיק את הטיימר של "+t.name+"?").setNegativeButton("לא",null).setPositiveButton("עצור"){_,_->TimerScheduler.cancel(this,t.id);TimerStore.remove(this,t.id);TimerNotifications.refresh(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this);screen=if(TimerStore.all(this).any{it.status=="active"})"timer" else if(TimerStore.all(this).any{it.status=="pending"})"done" else "home";draw()}.show()}
+ private fun finishStop(t:ParveTimer){TimerScheduler.cancel(this,t.id);TimerStore.remove(this,t.id);TimerNotifications.refresh(this);il.co.aniparve.widget.WidgetUpdater.updateAll(this);screen=if(TimerStore.all(this).any{it.status=="active"})"timer" else if(TimerStore.all(this).any{it.status=="pending"})"done" else "home";draw()}
+ private fun confirmStop(t:ParveTimer){if(!p.getBoolean("stop_confirm_app",true)){finishStop(t);return};AlertDialog.Builder(this).setTitle("עצירת טיימר").setMessage("לעצור את הטיימר של "+t.name+"?").setNegativeButton("ביטול",null).setPositiveButton("עצור"){_,_->finishStop(t)}.show()}
  private fun doneScreen(){val r=root();toolbar(r,"הסתיים");space(r,20);label(r,"זמן ההמתנה הסתיים",24f,ink,true)
   val pending=TimerStore.all(this).filter{it.status=="pending"}.sortedBy{it.endAt}
   pending.forEach{t->space(r,12);panel(r){orientation=0;gravity=Gravity.CENTER_VERTICAL
@@ -267,8 +272,9 @@ class MainActivity : AppCompatActivity() {
  }
  private fun settings(){val r=root();toolbar(r,"הגדרות");space(r,12)
  section(r,"◷","זמני המתנה ואנשים"){peopleAccordion(this)}
+ space(r,14);section(r,"✓","אישור לפני עצירה"){switchRow(this,"▣","בקש אישור לפני עצירה מהאפליקציה","אישור לפני עצירת טיימר מתוך האפליקציה","stop_confirm_app",true);divider(this);switchRow(this,"▣","בקש אישור לפני עצירה מהווידג'ט","אישור לפני עצירת טיימר בווידג'ט","stop_confirm_widget",true);divider(this);switchRow(this,"▣","בקש אישור לפני עצירה מהתראת אנדרואיד","אישור לפני עצירה מההתראה הקבועה","stop_confirm_notification",true)}
  space(r,14);section(r,"♫","התראות"){switchRow(this,"◉","רטט בהתראה","רטט בעת סיום ההמתנה","vibrate",true);divider(this);switchRow(this,"▣","התראה קבועה בזמן הספירה","הצגת הטיימר בשורת ההתראות","persistent",true);divider(this);settingRow(this,"♫","צליל התראה",if(p.getString("sound","default")=="silent")"שקט" else "ברירת מחדל","›"){AlertDialog.Builder(this@MainActivity).setTitle("צליל התראה").setItems(arrayOf("שקט","ברירת מחדל")){_,i->p.edit().putString("sound",if(i==0)"silent" else "default").apply();channel();TimerNotifications.refresh(this@MainActivity);settings()}.show()}}
- space(r,14);section(r,"▣","וידג'ט למסך הבית"){settingRow(this,"▣","הוספה למסך הבית","צפייה בטיימר בלי לפתוח את האפליקציה","›"){pinWidget()}}
+ space(r,14);section(r,"▣","ווידג'ט"){settingRow(this,"▣","הוספה למסך הבית","צפייה בטיימר בלי לפתוח את האפליקציה","›"){pinWidget()};space(this,6);val selected=p.getString("widget_theme","system")?:"system";val row=LinearLayout(this@MainActivity).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER};listOf("light" to "בהיר","dark" to "כהה","system" to "לפי הגדרות המערכת").forEach{(key,name)->val chosen=selected==key;row.addView(TextView(this@MainActivity).apply{text=name;textSize=12f;gravity=Gravity.CENTER;setTextColor(if(chosen)Color.WHITE else ink);background=solid(if(chosen)copper else bg,18);setPadding(dp(7),dp(11),dp(7),dp(11));setOnClickListener{p.edit().putString("widget_theme",key).apply();il.co.aniparve.widget.WidgetUpdater.updateAll(this@MainActivity);settings()}},LinearLayout.LayoutParams(0,-2,1f).apply{marginStart=dp(3);marginEnd=dp(3)})};addView(row)}
  space(r,14);section(r,"☼","מראה"){val current=p.getString("theme","system");val row=LinearLayout(this@MainActivity).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER};listOf("system" to "לפי המערכת","light" to "בהיר","dark" to "כהה").forEach{(key,name)->val selected=current==key;row.addView(TextView(this@MainActivity).apply{text=name;textSize=13f;gravity=Gravity.CENTER;setTextColor(if(selected)Color.WHITE else ink);background=solid(if(selected)copper else bg,22);setPadding(dp(8),dp(12),dp(8),dp(12));setOnClickListener{p.edit().putString("theme",key).apply();applyTheme();screen="settings";recreate()}},LinearLayout.LayoutParams(0,-2,1f).apply{marginStart=dp(4);marginEnd=dp(4)})};addView(row)}
  space(r,14);section(r,"⚙","הרשאות ואמינות"){settingRow(this,"♧","הגדרות התראות וחיסכון בסוללה","ניהול הרשאות והתנהגות ברקע","›"){try{if(Build.VERSION.SDK_INT>=31)startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,Uri.parse("package:$packageName")))else startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:$packageName")));if(Build.VERSION.SDK_INT>=23&&!getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName))startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:$packageName")))}catch(_:Exception){}}}
  space(r,14);section(r,"?","איך זה עובד"){settingRow(this,"?","פתיחת מסך ההסבר","הוראות קצרות לשימוש","›"){helpScreen()}}
