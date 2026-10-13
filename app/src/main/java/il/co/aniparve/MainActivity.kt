@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
  scrollHost=scroll
  outer.addView(fixed,LinearLayout.LayoutParams(-1,-2));outer.addView(scroll,LinearLayout.LayoutParams(-1,0,1f));setContentView(outer)
  val y=restoreScrollY;scroll.post{if(y>0)scroll.scrollTo(0,y);restoreScrollY=0}
- body.alpha=0f;body.animate().alpha(1f).setDuration(120).setInterpolator(AccelerateDecelerateInterpolator()).start();return body
+ if(y>0)body.alpha=1f else{body.alpha=0f;body.animate().alpha(1f).setDuration(120).setInterpolator(AccelerateDecelerateInterpolator()).start()};return body
 }
  private fun space(parent:LinearLayout,n:Int){parent.addView(Space(this),LinearLayout.LayoutParams(1,dp(n)))}
  private fun label(parent:LinearLayout,s:String,size:Float,color:Int,bold:Boolean=false,gravity:Int=Gravity.CENTER){parent.addView(TextView(this).apply{text=s;textSize=size;setTextColor(color);this.gravity=gravity;typeface=if(bold)Typeface.create("sans-serif-medium",Typeface.BOLD) else Typeface.create("sans-serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,-2))}
