@@ -131,6 +131,7 @@ class MainActivity : AppCompatActivity() {
  }
 
  private fun peopleDialog(){
+  var peopleDialogRef:AlertDialog?=null
   val outer=LinearLayout(this).apply{orientation=1;setPadding(dp(14),dp(6),dp(14),dp(6));layoutDirection=View.LAYOUT_DIRECTION_RTL}
   val scroll=ScrollView(this).apply{isFillViewport=false}
   val list=LinearLayout(this).apply{orientation=1}
@@ -147,13 +148,14 @@ class MainActivity : AppCompatActivity() {
    val arrow=TextView(this).apply{text="⌄";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER}
    header.addView(arrow,LinearLayout.LayoutParams(dp(32),dp(44)));tile.addView(header)
    val actions=LinearLayout(this).apply{orientation=0;visibility=View.GONE;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(8),0,0)}
-   actions.addView(outlineButton("עריכה",copper){editPerson(person)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginEnd=dp(5)})
-   actions.addView(outlineButton("מחיקה",red){AlertDialog.Builder(this@MainActivity).setTitle("מחיקת שם").setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this@MainActivity,TimerStore.people(this@MainActivity).filterNot{it.name==person.name});peopleDialog()}.show()},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(5)})
+   actions.addView(outlineButton("עריכה",copper){peopleDialogRef?.dismiss();editPerson(person)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginEnd=dp(5)})
+   actions.addView(outlineButton("מחיקה",red){AlertDialog.Builder(this@MainActivity).setTitle("מחיקת שם").setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this@MainActivity,TimerStore.people(this@MainActivity).filterNot{it.name==person.name});peopleDialogRef?.dismiss();peopleDialog()}.show()},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(5)})
    tile.addView(actions);header.setOnClickListener{val expanded=actions.visibility!=View.VISIBLE;actions.visibility=if(expanded)View.VISIBLE else View.GONE;arrow.text=if(expanded)"⌃" else "⌄"}
    list.addView(tile,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
   }
   scroll.addView(list);outer.addView(scroll,LinearLayout.LayoutParams(-1,dp(360)))
   val dlg=AlertDialog.Builder(this).setTitle("אנשים וזמני המתנה").setView(outer).setNegativeButton("סגירה",null).setPositiveButton("+ הוספת שם",null).create()
+  peopleDialogRef=dlg
   dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{dlg.dismiss();editPerson(null)}}
   dlg.show()
  }
