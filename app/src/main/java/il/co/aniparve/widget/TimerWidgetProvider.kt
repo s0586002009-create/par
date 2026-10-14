@@ -52,6 +52,8 @@ object WidgetUpdater{
    v.setViewVisibility(R.id.widget_empty,if(active.isEmpty())android.view.View.VISIBLE else android.view.View.GONE)
    v.setViewVisibility(R.id.widget_active,if(active.isEmpty())android.view.View.GONE else android.view.View.VISIBLE)
    val dairyVisible=TimerStore.p(c).getBoolean("show_dairy",true);v.setViewVisibility(R.id.widget_dairy,if(dairyVisible)android.view.View.VISIBLE else android.view.View.GONE);v.setTextViewText(R.id.widget_open,if(active.isEmpty())"אכלתי עכשיו" else "טיימרים פעילים")
+   val opts=m.getAppWidgetOptions(id);val minW=opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,180);val minH=opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,110);val compact=minW<150||minH<100
+   v.setTextViewText(R.id.widget_meat,if(compact)"🥩" else "בשרי");v.setTextViewText(R.id.widget_dairy,if(compact)"🧀" else "חלבי");v.setTextViewTextSize(R.id.widget_open,android.util.TypedValue.COMPLEX_UNIT_SP,if(compact)11f else 14f);v.setViewVisibility(R.id.widget_add,if(compact)android.view.View.GONE else android.view.View.VISIBLE)
    v.setOnClickPendingIntent(R.id.widget_open,pi(c,1,null,false));v.setOnClickPendingIntent(R.id.widget_meat,pi(c,2,"meat",false));v.setOnClickPendingIntent(R.id.widget_dairy,pi(c,3,"dairy",false))
    v.setOnClickPendingIntent(R.id.widget_add,pi(c,6,active.firstOrNull()?.type?:"meat",false,true))
    if(active.isNotEmpty()){

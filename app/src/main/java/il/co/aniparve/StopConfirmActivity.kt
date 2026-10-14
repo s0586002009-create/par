@@ -8,7 +8,7 @@ import androidx.appcompat.app.AlertDialog
 class StopConfirmActivity : AppCompatActivity() {
  private var dialog:AlertDialog?=null
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);handle(intent)}
- override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);dialog?.dismiss();handle(intent)}
+ override fun onNewIntent(intent:Intent){super.onNewIntent(intent);setIntent(intent);dialog?.setOnDismissListener(null);dialog?.dismiss();dialog=null;handle(intent)}
  private fun handle(i:Intent?){
   if(i==null){finish();return}
   if(i.action=="open_timer"){startActivity(Intent(this,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("show_timers",true));finish();return}
