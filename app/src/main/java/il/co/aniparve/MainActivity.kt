@@ -62,11 +62,11 @@ class MainActivity : AppCompatActivity() {
  private fun dp(n:Int)=(n*resources.displayMetrics.density).toInt()
  private fun ripple()=if(Build.VERSION.SDK_INT>=21)android.util.TypedValue().let{android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x33B26A2B),null,null)}else null
  private fun root():LinearLayout{
- val outer=LinearLayout(this).apply{orientation=1;background=solid(bg,0);layoutDirection=View.LAYOUT_DIRECTION_RTL}
- val fixed=LinearLayout(this).apply{orientation=1;setPadding(dp(20),dp(6),dp(20),dp(4));background=solid(bg,0);elevation=dp(3).toFloat()}
+ val outer=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(bg,0);layoutDirection=View.LAYOUT_DIRECTION_RTL}
+ val fixed=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(20),dp(6),dp(20),dp(4));background=solid(bg,0);elevation=dp(3).toFloat()}
  toolbarHost=fixed
  val compactTimer=screen=="timer"&&TimerStore.all(this).count{it.status=="active"}==1
- val body=LinearLayout(this).apply{orientation=1;setPadding(dp(20),dp(if(compactTimer)4 else 12),dp(20),dp(if(compactTimer)4 else 24));background=solid(bg,0);layoutDirection=View.LAYOUT_DIRECTION_RTL}
+ val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(20),dp(if(compactTimer)4 else 12),dp(20),dp(if(compactTimer)4 else 24));background=solid(bg,0);layoutDirection=View.LAYOUT_DIRECTION_RTL}
  val scroll=ScrollView(this).apply{isFillViewport=true;clipToPadding=false;addView(body,ViewGroup.LayoutParams(-1,-2));background=solid(bg,0)}
  scrollHost=scroll
  outer.addView(fixed,LinearLayout.LayoutParams(-1,-2));outer.addView(scroll,LinearLayout.LayoutParams(-1,0,1f));setContentView(outer)
@@ -76,20 +76,20 @@ class MainActivity : AppCompatActivity() {
  private fun space(parent:LinearLayout,n:Int){parent.addView(Space(this),LinearLayout.LayoutParams(1,dp(n)))}
  private fun label(parent:LinearLayout,s:String,size:Float,color:Int,bold:Boolean=false,gravity:Int=Gravity.CENTER){parent.addView(TextView(this).apply{text=s;textSize=size;setTextColor(color);this.gravity=gravity;typeface=if(bold)Typeface.create("sans-serif-medium",Typeface.BOLD) else Typeface.create("sans-serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,-2))}
  override fun onBackPressed(){when(screen){"help"->{screen="settings";draw()} "settings"->{screen=previousScreen;draw()} "timer","done"->{screen="home";draw()} else->super.onBackPressed()}}
- private fun toolbar(r:LinearLayout,title:String?=null){val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR}
+ private fun toolbar(r:LinearLayout,title:String?=null){val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR}
   val isSettings=title=="הגדרות";val isHelp=title=="איך זה עובד";val isInternal=isSettings||isHelp;row.addView(iconBtn(if(isInternal)"‹" else "⚙",if(isInternal)"חזרה" else "הגדרות"){if(isHelp){screen="settings";draw()}else if(isSettings){screen=previousScreen;draw()}else{previousScreen=screen;screen="settings";draw()}},LinearLayout.LayoutParams(dp(48),dp(48)))
-  val brand=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  val brand=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_RTL}
   brand.addView(ImageView(this).apply{try{setImageResource(R.mipmap.ic_launcher)}catch(_:Exception){};scaleType=ImageView.ScaleType.FIT_CENTER},LinearLayout.LayoutParams(dp(34),dp(34)).apply{marginStart=dp(7)})
   brand.addView(TextView(this).apply{text=title?:"אני פרווה";textSize=19f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink);gravity=Gravity.CENTER_VERTICAL})
   row.addView(brand,LinearLayout.LayoutParams(0,dp(48),1f));row.addView(Space(this),LinearLayout.LayoutParams(dp(48),dp(48)));(toolbarHost?:r).addView(row,LinearLayout.LayoutParams(-1,dp(52)))
  }
  private fun iconBtn(g:String,desc:String,action:()->Unit)=TextView(this).apply{text=g;contentDescription=desc;textSize=26f;gravity=Gravity.CENTER;setTextColor(ink);background=solid(card,18);elevation=dp(2).toFloat();isClickable=true;setOnClickListener{action()}}.also{}
  private fun home(){val r=root();toolbar(r);val activeCount=TimerStore.all(this).count{it.status=="active"};if(activeCount>0){space(r,6);r.addView(outlineButton("יש "+activeCount+" טיימרים פעילים  ›",copper){previousScreen="home";screen="timer";draw()},LinearLayout.LayoutParams(-1,dp(38)))};space(r,18);r.addView(TextView(this).apply{text="מה סיימת לאכול?";textSize=22f;maxLines=1;isSingleLine=true;if(Build.VERSION.SDK_INT>=26)setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);setTextColor(ink);typeface=Typeface.DEFAULT_BOLD;gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,-2));space(r,6);label(r,"בחרו כדי להתחיל טיימר",15f,muted);space(r,20)
- val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
+ val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
  if(p.getBoolean("show_dairy",true)){row.addView(food("🧀","חלבי","dairy"),LinearLayout.LayoutParams(0,dp(214),1f).apply{marginEnd=dp(7)});row.addView(food("🥩","בשרי","meat"),LinearLayout.LayoutParams(0,dp(214),1f).apply{marginStart=dp(7)})}else row.addView(food("🥩","בשרי","meat"),LinearLayout.LayoutParams(-1,dp(214)))
- r.addView(row);space(r,18);panel(r){orientation=0;gravity=Gravity.CENTER_VERTICAL;addView(TextView(this@MainActivity).apply{text="◷";textSize=24f;setTextColor(copper)},LinearLayout.LayoutParams(dp(38),-2));addView(LinearLayout(this@MainActivity).apply{orientation=1;addView(TextView(this@MainActivity).apply{text="זמני ההמתנה שלך";textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text="אפשר לשנות את הזמנים בהגדרות";textSize=12f;setTextColor(muted);setPadding(0,dp(3),0,0)})},LinearLayout.LayoutParams(0,-2,1f));addView(TextView(this@MainActivity).apply{text="›";textSize=26f;setTextColor(muted)});setOnClickListener{previousScreen="home";screen="settings";draw()}}
+ r.addView(row);space(r,18);panel(r){orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;addView(TextView(this@MainActivity).apply{text="◷";textSize=24f;setTextColor(copper)},LinearLayout.LayoutParams(dp(38),-2));addView(LinearLayout(this@MainActivity).apply{orientation=LinearLayout.VERTICAL;addView(TextView(this@MainActivity).apply{text="זמני ההמתנה שלך";textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text="אפשר לשנות את הזמנים בהגדרות";textSize=12f;setTextColor(muted);setPadding(0,dp(3),0,0)})},LinearLayout.LayoutParams(0,-2,1f));addView(TextView(this@MainActivity).apply{text="›";textSize=26f;setTextColor(muted)});setOnClickListener{previousScreen="home";screen="settings";draw()}}
 } private fun food(emoji:String,title:String,key:String)=LinearLayout(this).apply{
-  orientation=1;gravity=Gravity.CENTER;setPadding(dp(8),dp(18),dp(8),dp(18));layoutDirection=View.LAYOUT_DIRECTION_RTL
+  orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(8),dp(18),dp(8),dp(18));layoutDirection=View.LAYOUT_DIRECTION_RTL
   background=grad(if(key=="meat")intArrayOf(c("#E5534B"),c("#B8322C")) else intArrayOf(c("#6FA8DC"),c("#3F7DBF")),26);elevation=dp(3).toFloat()
   addView(TextView(this@MainActivity).apply{text=emoji;textSize=52f;gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,dp(94)))
   space(this,10);addView(TextView(this@MainActivity).apply{text=title;textSize=23f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER})
@@ -98,14 +98,14 @@ class MainActivity : AppCompatActivity() {
   isClickable=true;setOnClickListener{startDialog(key)}
   setOnTouchListener{v,e->when(e.action){MotionEvent.ACTION_DOWN->v.animate().scaleX(.97f).scaleY(.97f).setDuration(90).start();MotionEvent.ACTION_UP,MotionEvent.ACTION_CANCEL->v.animate().scaleX(1f).scaleY(1f).setDuration(140).start()};false}
  }
- private fun panel(r:LinearLayout,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=1;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(16),dp(14),dp(16),dp(14));content()};r.addView(box,LinearLayout.LayoutParams(-1,-2))}
+ private fun panel(r:LinearLayout,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(16),dp(14),dp(16),dp(14));content()};r.addView(box,LinearLayout.LayoutParams(-1,-2))}
  private fun chooseTimerType(){val choices=if(p.getBoolean("show_dairy",true))arrayOf("בשרי","חלבי") else arrayOf("בשרי");val d=AlertDialog.Builder(this).setTitle("הוספת טיימר").setItems(choices){_,which->startDialog(if(which==0)"meat" else "dairy")}.create();d.setOnCancelListener{if(widgetOverlay)finish()};d.show()}
  private fun startDialog(type:String){
  val actualType=if(type=="dairy"&&!p.getBoolean("show_dairy",true))"meat" else type
  val autoEnabled=p.getBoolean("auto_start",true);val seconds=p.getInt("auto_start_seconds",10).coerceIn(3,30)
  autoStartRunnable?.let{autoStartHandler.removeCallbacks(it)};autoStartRunnable=null;autoStartCancelCallback=null
  var cancelled=false;var armed=false
- val box=LinearLayout(this).apply{orientation=1;setPadding(dp(16),dp(6),dp(16),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+ val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(6),dp(16),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL}
  val countdown=TextView(this).apply{text="מתחיל אוטומטית בעוד "+seconds+" שניות";textSize=11f;gravity=Gravity.CENTER;setTextColor(muted);visibility=View.GONE}
  val progress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=1000;progress=1000;visibility=View.GONE;progressTintList=android.content.res.ColorStateList.valueOf(copper);progressBackgroundTintList=android.content.res.ColorStateList.valueOf(if(dark)c("#51443A") else c("#E8C9A6"))}
  box.addView(countdown,LinearLayout.LayoutParams(-1,dp(20)));box.addView(progress,LinearLayout.LayoutParams(-1,dp(3)))
@@ -139,10 +139,10 @@ class MainActivity : AppCompatActivity() {
  if(autoEnabled){countdown.visibility=View.VISIBLE;progress.visibility=View.VISIBLE;val start=SystemClock.elapsedRealtime();val task=object:Runnable{override fun run(){if(cancelled||!dlg.isShowing)return;val left=(seconds*1000L-(SystemClock.elapsedRealtime()-start)).coerceAtLeast(0L);countdown.text="מתחיל אוטומטית בעוד "+((left+999)/1000).toInt()+" שניות";progress.progress=((left*1000L)/(seconds*1000L)).toInt();if(left==0L){cancelled=true;autoStartCancelCallback=null;autoStartRunnable=null;dlg.getButton(AlertDialog.BUTTON_POSITIVE).performClick()}else autoStartHandler.postDelayed(this,100L)}};autoStartRunnable=task;autoStartHandler.post(task)}
  }
  private fun chipBackground(selected:Boolean)=GradientDrawable().apply{cornerRadius=dp(20).toFloat();setColor(if(selected)copper else card);setStroke(dp(1),copper)}
- private fun showElapsedPicker(onSelected:(Long)->Unit){val tabs=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL};val content=LinearLayout(this).apply{orientation=1;setPadding(dp(16),dp(10),dp(16),dp(8))}
+ private fun showElapsedPicker(onSelected:(Long)->Unit){val tabs=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL};val content=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(10),dp(16),dp(8))}
   val relative=RadioButton(this).apply{text="משך זמן";isChecked=true};val clockTime=RadioButton(this).apply{text="שעת סיום האכילה"}
   tabs.addView(relative,LinearLayout.LayoutParams(0,-2,1f));tabs.addView(clockTime,LinearLayout.LayoutParams(0,-2,1f));content.addView(tabs)
-  val wheels=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
+  val wheels=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
   val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=23;value=0};val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59;value=0;cyclic=true}
   wheels.addView(h,LinearLayout.LayoutParams(0,dp(160),1f));wheels.addView(m,LinearLayout.LayoutParams(0,dp(160),1f));content.addView(wheels)
   var adjusting=false
@@ -155,22 +155,22 @@ class MainActivity : AppCompatActivity() {
 
  private fun peopleDialog(){
   var peopleDialogRef:AlertDialog?=null
-  val outer=LinearLayout(this).apply{orientation=1;setPadding(dp(14),dp(6),dp(14),dp(6));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+  val outer=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(14),dp(6),dp(14),dp(6));layoutDirection=View.LAYOUT_DIRECTION_RTL}
   val scroll=ScrollView(this).apply{isFillViewport=false}
-  val list=LinearLayout(this).apply{orientation=1}
+  val list=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
   val people=TimerStore.people(this)
   if(people.isEmpty()){val empty=TextView(this).apply{text="עדיין לא נשמרו שמות. אפשר להוסיף שם ולשמור זמני המתנה אישיים.";textSize=14f;setTextColor(muted);setPadding(dp(8),dp(18),dp(8),dp(18))};list.addView(empty)}
   people.forEach{person->
-   val tile=LinearLayout(this).apply{orientation=1;background=solid(card,16);setPadding(dp(12),dp(10),dp(12),dp(10));layoutDirection=View.LAYOUT_DIRECTION_RTL}
-   val header=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val tile=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(card,16);setPadding(dp(12),dp(10),dp(12),dp(10));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val header=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
    header.addView(TextView(this).apply{text="♧";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(38),dp(44)))
-   header.addView(LinearLayout(this).apply{orientation=1
+   header.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL
     addView(TextView(this@MainActivity).apply{text=person.name;textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
     addView(TextView(this@MainActivity).apply{text=if(person.meatWait!=null||person.dairyWait!=null)"זמני המתנה אישיים" else "זמני ההמתנה הכלליים";textSize=12f;setTextColor(muted);setPadding(0,dp(2),0,0)})
    },LinearLayout.LayoutParams(0,-2,1f))
    val arrow=TextView(this).apply{text="⌄";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER}
    header.addView(arrow,LinearLayout.LayoutParams(dp(32),dp(44)));tile.addView(header)
-   val actions=LinearLayout(this).apply{orientation=0;visibility=View.GONE;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(8),0,0)}
+   val actions=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;visibility=View.GONE;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(8),0,0)}
    actions.addView(outlineButton("עריכה",copper){peopleDialogRef?.dismiss();editPerson(person)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginEnd=dp(5)})
    actions.addView(outlineButton("מחיקה",red){val current=TimerStore.people(this@MainActivity);if(current.size<=1){Toast.makeText(this@MainActivity,"חייב להישאר לפחות אדם אחד",Toast.LENGTH_SHORT).show()}else AlertDialog.Builder(this@MainActivity).setTitle("מחיקת שם").setMessage("למחוק את השם "+person.name+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->TimerStore.savePeople(this@MainActivity,current.filterNot{it.name==person.name});peopleDialogRef?.dismiss();peopleDialog()}.show()},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(5)})
    tile.addView(actions);header.setOnClickListener{val expanded=actions.visibility!=View.VISIBLE;actions.visibility=if(expanded)View.VISIBLE else View.GONE;arrow.text=if(expanded)"⌃" else "⌄"}
@@ -182,13 +182,13 @@ class MainActivity : AppCompatActivity() {
   dlg.setOnShowListener{dlg.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{dlg.dismiss();editPerson(null)}}
   dlg.show()
  }  private fun editPerson(old:ParvePerson?){
-   val box=LinearLayout(this).apply{orientation=1;setPadding(dp(18),dp(6),dp(18),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(6),dp(18),dp(4));layoutDirection=View.LAYOUT_DIRECTION_RTL}
    val name=EditText(this).apply{hint="שם";setSingleLine(true);setText(old?.name?:"")};box.addView(name)
-   val row=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER}
+   val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER}
    fun pick(v:Long)=WheelPicker(this,"שעות ודקות").apply{minValue=1;maxValue=360;value=(v/60000).toInt().coerceIn(1,360);setFormatter{String.format(Locale.getDefault(),"%d:%02d",it/60,it%60)}}
    val meat=pick(old?.meatWait?:TimerStore.duration(this,"meat"));val dairy=pick(old?.dairyWait?:TimerStore.duration(this,"dairy"))
-   row.addView(LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(TextView(this@MainActivity).apply{text="בשרי ← חלבי";textSize=13f;setTextColor(ink);gravity=Gravity.CENTER});addView(meat)},LinearLayout.LayoutParams(0,-2,1f))
-   row.addView(LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(TextView(this@MainActivity).apply{text="חלבי ← בשרי";textSize=13f;setTextColor(ink);gravity=Gravity.CENTER});addView(dairy)},LinearLayout.LayoutParams(0,-2,1f))
+   row.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;addView(TextView(this@MainActivity).apply{text="בשרי ← חלבי";textSize=13f;setTextColor(ink);gravity=Gravity.CENTER});addView(meat)},LinearLayout.LayoutParams(0,-2,1f))
+   row.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;addView(TextView(this@MainActivity).apply{text="חלבי ← בשרי";textSize=13f;setTextColor(ink);gravity=Gravity.CENTER});addView(dairy)},LinearLayout.LayoutParams(0,-2,1f))
    box.addView(row)
    AlertDialog.Builder(this).setTitle(if(old==null)"הוספת שם" else "עריכת שם").setView(box).setNegativeButton("ביטול",null).setPositiveButton("שמירה"){_,_->
     val n=name.text.toString().trim();if(n.isBlank())return@setPositiveButton
@@ -208,7 +208,7 @@ class MainActivity : AppCompatActivity() {
   r.addView(bar,LinearLayout.LayoutParams(-1,dp(7)).apply{topMargin=dp(if(active.size==1)5 else 10)})
   pct=TextView(this).apply{textSize=13f;typeface=Typeface.DEFAULT_BOLD;setTextColor(accent);gravity=Gravity.CENTER;setPadding(0,dp(4),0,dp(3))};r.addView(pct)
   val endLabel=TextView(this).apply{text=(active.firstOrNull()?.let{if(it.name=="אני")endPhrase(it.endAt) else it.name+" פרווה "+endPhrase(it.endAt).removePrefix("אהיה פרווה ")}?:"");textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;textSize=12f;setPadding(0,0,0,dp(5))};r.addView(endLabel);active.firstOrNull()?.takeIf{it.ateAt>0}?.let{label(r,"סיימתי לאכול בשעה "+DateFormat.getTimeFormat(this).format(java.util.Date(it.ateAt)),12f,muted)}
-  val actions=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR};actions.addView(primaryButton("+"){chooseTimerType()},LinearLayout.LayoutParams(dp(46),dp(46)));actions.addView(outlineButton("עצור",red){TimerStore.all(this).firstOrNull{it.status=="active"}?.let{confirmStop(it)}},LinearLayout.LayoutParams(0,dp(46),1f).apply{marginStart=dp(8)});r.addView(actions,LinearLayout.LayoutParams(-1,-2))
+  val actions=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_LTR};actions.addView(primaryButton("+"){chooseTimerType()},LinearLayout.LayoutParams(dp(46),dp(46)));actions.addView(outlineButton("עצור",red){TimerStore.all(this).firstOrNull{it.status=="active"}?.let{confirmStop(it)}},LinearLayout.LayoutParams(0,dp(46),1f).apply{marginStart=dp(8)});r.addView(actions,LinearLayout.LayoutParams(-1,-2))
   startTick()
  }
  private fun startTick(){val end=p.getLong("end",0);val duration=p.getLong("duration",1).coerceAtLeast(1)
@@ -223,10 +223,10 @@ class MainActivity : AppCompatActivity() {
   val columns=when{widthDp>=600&&active.size>=5->3;widthDp>=360->2;else->1}
   val grid=GridLayout(this).apply{columnCount=columns;orientation=GridLayout.HORIZONTAL;alignmentMode=GridLayout.ALIGN_BOUNDS;useDefaultMargins=false}
   active.sortedBy{it.endAt}.forEachIndexed{index,t->
-   val cardView=LinearLayout(this).apply{orientation=1;background=solid(card,20);elevation=dp(2).toFloat();setPadding(dp(if(columns>1)10 else 16),dp(12),dp(if(columns>1)10 else 16),dp(12));layoutDirection=View.LAYOUT_DIRECTION_RTL}
-   val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val cardView=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(card,20);elevation=dp(2).toFloat();setPadding(dp(if(columns>1)10 else 16),dp(12),dp(if(columns>1)10 else 16),dp(12));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
    row.addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"🥩" else "🧀";textSize=if(columns>1)20f else 24f},LinearLayout.LayoutParams(dp(32),dp(38)))
-   row.addView(LinearLayout(this@MainActivity).apply{orientation=1
+   row.addView(LinearLayout(this@MainActivity).apply{orientation=LinearLayout.VERTICAL
     addView(TextView(this@MainActivity).apply{text=t.name;textSize=if(columns>1)15f else 17f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
     addView(TextView(this@MainActivity).apply{text=if(t.type=="meat")"אחרי בשרי" else "אחרי חלבי";textSize=11f;setTextColor(if(t.type=="meat")red else blue)})
    },LinearLayout.LayoutParams(0,-2,1f))
@@ -262,9 +262,9 @@ class MainActivity : AppCompatActivity() {
  private fun confirmStop(t:ParveTimer){if(!p.getBoolean("stop_confirm_app",true)){finishStop(t);return};AlertDialog.Builder(this).setTitle("עצירת טיימר").setMessage("לעצור את הטיימר של "+t.name+"?").setNegativeButton("ביטול",null).setPositiveButton("עצור"){_,_->finishStop(t)}.show()}
  private fun doneScreen(){val r=root();toolbar(r,"הסתיים");space(r,20);label(r,"זמן ההמתנה הסתיים",24f,ink,true)
   val pending=TimerStore.all(this).filter{it.status=="pending"}.sortedBy{it.endAt}
-  pending.forEach{t->space(r,12);panel(r){orientation=0;gravity=Gravity.CENTER_VERTICAL
+  pending.forEach{t->space(r,12);panel(r){orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL
    addView(TextView(this@MainActivity).apply{text="✓";textSize=25f;setTextColor(copper)},LinearLayout.LayoutParams(dp(36),dp(42)))
-   addView(LinearLayout(this@MainActivity).apply{orientation=1
+   addView(LinearLayout(this@MainActivity).apply{orientation=LinearLayout.VERTICAL
     addView(TextView(this@MainActivity).apply{text=if(t.name=="אני")"אני פרווה" else t.name+" פרווה";textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)})
     addView(TextView(this@MainActivity).apply{text=endPhrase(t.endAt);textSize=12f;setTextColor(muted)})
    },LinearLayout.LayoutParams(0,-2,1f))
@@ -283,12 +283,12 @@ class MainActivity : AppCompatActivity() {
  space(r,10);sectionInfo(r,"?","עזרה והסבר","הוראות קצרות לשימוש באפליקציה"){settingRow(this,"?","פתיחת מסך ההסבר","הסבר על הטיימרים וההתראות","›"){previousScreen="settings";screen="help";draw()}}
  space(r,18);label(r,"אני פרווה · גרסה 2.6.0",11f,muted,false,Gravity.CENTER)
 }
-private fun sectionInfo(r:LinearLayout,g:String,title:String,subtitle:String,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=1;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(14),dp(12),dp(14),dp(12))};val h=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;addView(TextView(this@MainActivity).apply{text=g;textSize=21f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(34),dp(34)));addView(TextView(this@MainActivity).apply{text=title;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)})};box.addView(h);box.addView(TextView(this).apply{text=subtitle;textSize=11f;setTextColor(muted);maxLines=2});space(box,5);box.content();r.addView(box,LinearLayout.LayoutParams(-1,-2))}
+private fun sectionInfo(r:LinearLayout,g:String,title:String,subtitle:String,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(14),dp(12),dp(14),dp(12))};val h=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;addView(TextView(this@MainActivity).apply{text=g;textSize=21f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(34),dp(34)));addView(TextView(this@MainActivity).apply{text=title;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)})};box.addView(h);box.addView(TextView(this).apply{text=subtitle;textSize=11f;setTextColor(muted);maxLines=2});space(box,5);box.content();r.addView(box,LinearLayout.LayoutParams(-1,-2))}
 private fun refreshSettingsPreservingScroll(){restoreScrollY=scrollHost?.scrollY?:restoreScrollY;screen="settings";draw()}
 private fun addThemeCapsules(parent:LinearLayout,widget:Boolean){
  val key=if(widget)"widget_theme" else "theme"
  val choices=listOf("system" to "לפי המכשיר","light" to "בהיר","dark" to "כהה")
- val row=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER}
+ val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;gravity=Gravity.CENTER}
  fun refresh(){
   val selected=p.getString(key,"system")?:"system"
   for(i in 0 until row.childCount){
@@ -322,15 +322,15 @@ private fun addThemeCapsules(parent:LinearLayout,widget:Boolean){
 }
 private fun savePeopleAndDefaults(list:List<ParvePerson>){val valid=list.filter{it.name.isNotBlank()}.toMutableList();if(valid.isEmpty())valid.add(ParvePerson("אני",TimerStore.duration(this,"meat"),TimerStore.duration(this,"dairy")));TimerStore.savePeople(this,valid);valid.firstOrNull()?.let{a->val m=(a.meatWait?:TimerStore.duration(this,"meat")).coerceIn(60000L,21600000L);val d=(a.dairyWait?:TimerStore.duration(this,"dairy")).coerceIn(60000L,21600000L);p.edit().putInt("meat_h",(m/3600000L).toInt()).putInt("meat_m",((m%3600000L)/60000L).toInt()).putInt("dairy_h",(d/3600000L).toInt()).putInt("dairy_m",((d%3600000L)/60000L).toInt()).apply()}}
 private fun peopleAccordion(parent:LinearLayout){
- val wrap=LinearLayout(this).apply{orientation=1};var opened=p.getString("expanded_person",TimerStore.people(this).firstOrNull()?.name?:"אני")?:"אני"
+ val wrap=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL};var opened=p.getString("expanded_person",TimerStore.people(this).firstOrNull()?.name?:"אני")?:"אני"
  fun render(){
   wrap.removeAllViews();val people=TimerStore.people(this@MainActivity).toMutableList()
   people.forEach{person->
    val open=opened==person.name;var meat=person.meatWait?:TimerStore.duration(this,"meat");var dairy=person.dairyWait?:TimerStore.duration(this,"dairy")
-   val tile=LinearLayout(this).apply{orientation=1;background=solid(if(open)bg else card,18);setPadding(dp(12),dp(10),dp(12),dp(10));layoutDirection=View.LAYOUT_DIRECTION_RTL}
-   val head=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val tile=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(if(open)bg else card,18);setPadding(dp(12),dp(10),dp(12),dp(10));layoutDirection=View.LAYOUT_DIRECTION_RTL}
+   val head=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL}
    head.addView(TextView(this).apply{text="♧";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(34),dp(42)))
-   head.addView(LinearLayout(this).apply{orientation=1;addView(TextView(this@MainActivity).apply{text=person.name;textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text=if(p.getBoolean("show_dairy",true))"בשרי ${fmtWait(meat)} · חלבי ${fmtWait(dairy)}" else "בשרי ${fmtWait(meat)}";textSize=11f;setTextColor(muted)})},LinearLayout.LayoutParams(0,-2,1f))
+   head.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;addView(TextView(this@MainActivity).apply{text=person.name;textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text=if(p.getBoolean("show_dairy",true))"בשרי ${fmtWait(meat)} · חלבי ${fmtWait(dairy)}" else "בשרי ${fmtWait(meat)}";textSize=11f;setTextColor(muted)})},LinearLayout.LayoutParams(0,-2,1f))
    head.addView(TextView(this).apply{text=if(open)"⌃" else "⌄";textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(28),dp(42)));tile.addView(head)
    head.setOnClickListener{opened=if(open)"" else person.name;p.edit().putString("expanded_person",opened).apply();render()}
    if(open){
@@ -338,7 +338,7 @@ private fun peopleAccordion(parent:LinearLayout){
     val name=EditText(this).apply{hint="שם האדם";setSingleLine(true);setText(person.name)};tile.addView(name,LinearLayout.LayoutParams(-1,dp(46)))
     fun save(){val all=TimerStore.people(this@MainActivity).toMutableList();val i=all.indexOfFirst{it.name==originalName};if(i<0)return;val n=name.text.toString().trim().ifBlank{originalName};if(all.indices.any{it!=i&&all[it].name.equals(n,true)})return;all[i]=ParvePerson(n,meat,dairy);savePeopleAndDefaults(all);if(n!=originalName){originalName=n;opened=n;p.edit().putString("expanded_person",n).apply()}}
     fun picker(title:String,start:Long,onChange:(Long)->Unit){
-     val h0=(start/3600000L).toInt().coerceIn(0,6);val m0=((start%3600000L)/60000L).toInt().coerceIn(0,59);val row=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
+     val h0=(start/3600000L).toInt().coerceIn(0,6);val m0=((start%3600000L)/60000L).toInt().coerceIn(0,59);val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
      val h=WheelPicker(this,"שעות").apply{minValue=0;maxValue=6;value=h0;setFormatter{String.format(Locale.US,"%02d",it)}}
      val m=WheelPicker(this,"דקות").apply{minValue=0;maxValue=59;value=m0.coerceIn(0,59);cyclic=true;setFormatter{String.format(Locale.US,"%02d",it)}}
      var lock=false
@@ -357,18 +357,18 @@ private fun peopleAccordion(parent:LinearLayout){
   }
  }
  render();parent.addView(wrap,LinearLayout.LayoutParams(-1,-2))
- parent.addView(primaryButton("+ הוסף איש"){val tile=LinearLayout(this).apply{orientation=1;background=solid(bg,18);setPadding(dp(12),dp(10),dp(12),dp(10));layoutDirection=View.LAYOUT_DIRECTION_RTL};val field=EditText(this).apply{hint="שם האדם";setSingleLine(true)};tile.addView(TextView(this).apply{text="איש חדש · זמני ברירת מחדל";textSize=13f;setTextColor(muted)});tile.addView(field,LinearLayout.LayoutParams(-1,dp(46)));tile.addView(primaryButton("שמור איש"){val n=field.text.toString().trim();val all=TimerStore.people(this).toMutableList();if(n.isNotBlank()&&all.none{it.name.equals(n,true)}){all.add(ParvePerson(n,TimerStore.duration(this,"meat"),TimerStore.duration(this,"dairy")));savePeopleAndDefaults(all);opened=n;p.edit().putString("expanded_person",n).apply();settings()}else if(n.isNotBlank())Toast.makeText(this,"השם כבר קיים",Toast.LENGTH_SHORT).show()else Toast.makeText(this,"יש להזין שם",Toast.LENGTH_SHORT).show()},LinearLayout.LayoutParams(-1,dp(42)));val saveButton=tile.getChildAt(tile.childCount-1);saveButton.isEnabled=false;saveButton.alpha=.45f;field.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){saveButton.isEnabled=!s.isNullOrBlank();saveButton.alpha=if(saveButton.isEnabled)1f else .45f};override fun afterTextChanged(s:Editable?) {}});wrap.addView(tile,0,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)});field.requestFocus()},LinearLayout.LayoutParams(-1,dp(48)))
+ parent.addView(primaryButton("+ הוסף איש"){val tile=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(bg,18);setPadding(dp(12),dp(10),dp(12),dp(10));layoutDirection=View.LAYOUT_DIRECTION_RTL};val field=EditText(this).apply{hint="שם האדם";setSingleLine(true)};tile.addView(TextView(this).apply{text="איש חדש · זמני ברירת מחדל";textSize=13f;setTextColor(muted)});tile.addView(field,LinearLayout.LayoutParams(-1,dp(46)));tile.addView(primaryButton("שמור איש"){val n=field.text.toString().trim();val all=TimerStore.people(this).toMutableList();if(n.isNotBlank()&&all.none{it.name.equals(n,true)}){all.add(ParvePerson(n,TimerStore.duration(this,"meat"),TimerStore.duration(this,"dairy")));savePeopleAndDefaults(all);opened=n;p.edit().putString("expanded_person",n).apply();settings()}else if(n.isNotBlank())Toast.makeText(this,"השם כבר קיים",Toast.LENGTH_SHORT).show()else Toast.makeText(this,"יש להזין שם",Toast.LENGTH_SHORT).show()},LinearLayout.LayoutParams(-1,dp(42)));val saveButton=tile.getChildAt(tile.childCount-1);saveButton.isEnabled=false;saveButton.alpha=.45f;field.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){saveButton.isEnabled=!s.isNullOrBlank();saveButton.alpha=if(saveButton.isEnabled)1f else .45f};override fun afterTextChanged(s:Editable?) {}});wrap.addView(tile,0,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)});field.requestFocus()},LinearLayout.LayoutParams(-1,dp(48)))
 }
 private fun fmtWait(ms:Long):String{val n=(ms/60000L).toInt().coerceIn(1,360);return "${n/60}:${String.format(Locale.US,"%02d",n%60)}"}
-private fun section(r:LinearLayout,g:String,title:String,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=1;background=solid(card,24);elevation=dp(2).toFloat();setPadding(dp(18),dp(16),dp(18),dp(16))}
-  val h=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;addView(TextView(this@MainActivity).apply{text=g;textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(34),dp(36)));addView(TextView(this@MainActivity).apply{text=title;textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)})};box.addView(h);space(box,8);box.content();r.addView(box,LinearLayout.LayoutParams(-1,-2))}
- private fun waitCard(parent:LinearLayout,title:String,key:String){val box=LinearLayout(this).apply{orientation=1;background=solid(bg,20);setPadding(dp(14),dp(14),dp(14),dp(12))}
+private fun section(r:LinearLayout,g:String,title:String,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(card,24);elevation=dp(2).toFloat();setPadding(dp(18),dp(16),dp(18),dp(16))}
+  val h=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;addView(TextView(this@MainActivity).apply{text=g;textSize=22f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(34),dp(36)));addView(TextView(this@MainActivity).apply{text=title;textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper)})};box.addView(h);space(box,8);box.content();r.addView(box,LinearLayout.LayoutParams(-1,-2))}
+ private fun waitCard(parent:LinearLayout,title:String,key:String){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(bg,20);setPadding(dp(14),dp(14),dp(14),dp(12))}
   box.addView(TextView(this).apply{text=title;textSize=15f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});space(box,10)
-  val wheels=LinearLayout(this).apply{orientation=0;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
+  val wheels=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER}
   fun picker(max:Int,value:Int)=WheelPicker(this).apply{minValue=0;maxValue=max;this.value=value;setFormatter{v->String.format(Locale.US,"%02d",v)}}
   val hours=picker(6,p.getInt(key+"_h",6).coerceIn(0,6));val minutes=picker(59,p.getInt(key+"_m",0).coerceIn(0,59)).apply{cyclic=true}
-  val hourCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(hours,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="שעות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
-  val minCol=LinearLayout(this).apply{orientation=1;gravity=Gravity.CENTER;addView(minutes,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="דקות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
+  val hourCol=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;addView(hours,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="שעות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
+  val minCol=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;addView(minutes,LinearLayout.LayoutParams(dp(84),dp(176)));addView(TextView(this@MainActivity).apply{text="דקות";textSize=12f;setTextColor(muted);gravity=Gravity.CENTER})}
   wheels.addView(hourCol);wheels.addView(TextView(this).apply{text=":";textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(copper);gravity=Gravity.CENTER;setPadding(0,0,0,dp(16))},LinearLayout.LayoutParams(dp(28),dp(176)));wheels.addView(minCol);box.addView(wheels,LinearLayout.LayoutParams(-1,-2))
   val summary=TextView(this).apply{text=durationText(hours.value,minutes.value);textSize=12f;setTextColor(muted);gravity=Gravity.CENTER;setPadding(0,dp(8),0,0)}
   fun update(){summary.text=durationText(hours.value,minutes.value)}
@@ -377,19 +377,19 @@ private fun section(r:LinearLayout,g:String,title:String,content:LinearLayout.()
   hours.setOnValueChangedListener{_,_,_->if(!adjusting)savePicker()}
   minutes.setOnValueChangedListener{_,old,v->if(!adjusting){var total=hours.value*60+v;if(v-old>30)total=(hours.value-1)*60+v else if(old-v>30)total=(hours.value+1)*60+v;total=total.coerceIn(1,360);adjusting=true;hours.value=total/60;minutes.value=total%60;adjusting=false;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}}
   if(hours.value==0&&minutes.value==0)minutes.value=1;box.addView(summary)
-  val quick=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
+  val quick=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER;layoutDirection=View.LAYOUT_DIRECTION_LTR}
   fun setMinutes(total:Int){val safe=total.coerceIn(1,360);hours.value=safe/60;minutes.maxValue=59;minutes.value=safe%60;p.edit().putInt(key+"_h",hours.value).putInt(key+"_m",minutes.value).apply();update()}
   quick.addView(outlineButton("− 30 דקות",muted){setMinutes(hours.value*60+minutes.value-30)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginEnd=dp(6)})
   quick.addView(outlineButton("+ 30 דקות",copper){setMinutes(hours.value*60+minutes.value+30)},LinearLayout.LayoutParams(0,dp(40),1f).apply{marginStart=dp(6)})
   box.addView(quick,LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(8)});parent.addView(box,LinearLayout.LayoutParams(-1,-2))
  }
- private fun switchRow(parent:LinearLayout,g:String,title:String,sub:String,key:String,def:Boolean){val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(8),0,dp(8))}
+ private fun switchRow(parent:LinearLayout,g:String,title:String,sub:String,key:String,def:Boolean){val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(8),0,dp(8))}
  row.addView(TextView(this).apply{text=g;textSize=21f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(36),dp(42)))
- row.addView(LinearLayout(this).apply{orientation=1;addView(TextView(this@MainActivity).apply{text=title;textSize=13f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text=sub;textSize=11f;setTextColor(muted);setPadding(0,dp(3),0,0)})},LinearLayout.LayoutParams(0,-2,1f))
+ row.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;addView(TextView(this@MainActivity).apply{text=title;textSize=13f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text=sub;textSize=11f;setTextColor(muted);setPadding(0,dp(3),0,0)})},LinearLayout.LayoutParams(0,-2,1f))
  row.addView(SwitchCompat(this).apply{isChecked=p.getBoolean(key,def);showText=true;textOn="✓";textOff="";setTextColor(Color.WHITE);thumbTintList=android.content.res.ColorStateList.valueOf(if(isChecked)Color.WHITE else c(if(dark)"#8E8379" else "#A59B91"));trackTintList=android.content.res.ColorStateList.valueOf(if(isChecked)copper else c(if(dark)"#51443A" else "#D8D4CF"));setOnCheckedChangeListener{_,v->p.edit().putBoolean(key,v).apply();thumbTintList=android.content.res.ColorStateList.valueOf(if(v)Color.WHITE else c(if(dark)"#8E8379" else "#A59B91"));trackTintList=android.content.res.ColorStateList.valueOf(if(v)copper else c(if(dark)"#51443A" else "#D8D4CF"));when(key){"persistent"->persistent();"vibrate"->channel();"show_dairy"->{try{il.co.aniparve.widget.WidgetUpdater.updateAll(this@MainActivity)}catch(_:Exception){};restoreScrollY=scrollHost?.scrollY?:0;refreshSettingsPreservingScroll()};"auto_start"->{restoreScrollY=scrollHost?.scrollY?:0;refreshSettingsPreservingScroll()} } }},LinearLayout.LayoutParams(dp(58),dp(48)));parent.addView(row)}
- private fun settingRow(parent:LinearLayout,g:String,title:String,sub:String,end:String,action:()->Unit){val row=LinearLayout(this).apply{orientation=0;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(12),0,dp(12));setOnClickListener{action()}}
+ private fun settingRow(parent:LinearLayout,g:String,title:String,sub:String,end:String,action:()->Unit){val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;layoutDirection=View.LAYOUT_DIRECTION_RTL;setPadding(0,dp(12),0,dp(12));setOnClickListener{action()}}
   row.addView(TextView(this).apply{text=g;textSize=23f;setTextColor(copper);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(40),dp(44)))
-  row.addView(LinearLayout(this).apply{orientation=1;addView(TextView(this@MainActivity).apply{text=title;textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text=sub;textSize=12f;setTextColor(muted);setPadding(0,dp(3),0,0)})},LinearLayout.LayoutParams(0,-2,1f))
+  row.addView(LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;addView(TextView(this@MainActivity).apply{text=title;textSize=14f;typeface=Typeface.DEFAULT_BOLD;setTextColor(ink)});addView(TextView(this@MainActivity).apply{text=sub;textSize=12f;setTextColor(muted);setPadding(0,dp(3),0,0)})},LinearLayout.LayoutParams(0,-2,1f))
   row.addView(TextView(this).apply{text=end;textSize=27f;setTextColor(muted);gravity=Gravity.CENTER},LinearLayout.LayoutParams(dp(26),dp(40)));parent.addView(row)}
  private fun divider(parent:LinearLayout){parent.addView(View(this).apply{setBackgroundColor(c(if(dark)"#45362B" else "#F0E7DC"))},LinearLayout.LayoutParams(-1,dp(1)))}
  private fun primaryButton(title:String,action:()->Unit)=TextView(this).apply{text=title;textSize=16f;typeface=Typeface.DEFAULT_BOLD;setTextColor(Color.WHITE);gravity=Gravity.CENTER;background=solid(copper,20);elevation=dp(2).toFloat();setOnClickListener{action()}}

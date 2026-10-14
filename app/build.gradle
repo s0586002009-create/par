@@ -10,3 +10,14 @@ android {
 dependencies { implementation 'androidx.appcompat:appcompat:1.7.0'; testImplementation 'junit:junit:4.13.2' }
 // Run the timer-state unit tests as part of every release build.
 afterEvaluate { tasks.named('assembleRelease') { dependsOn('testReleaseUnitTest') } }
+
+tasks.register('printLintReport') {
+    doLast {
+        def report = file("$buildDir/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt")
+        if (report.exists()) {
+            println('===== FULL ANDROID LINT REPORT =====')
+            println(report.text)
+        }
+    }
+}
+afterEvaluate { tasks.named('lintRelease') { finalizedBy('printLintReport') } }
