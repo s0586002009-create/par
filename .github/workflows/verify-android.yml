@@ -42,6 +42,6 @@ jobs:
           sha256sum app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: ani-parve-2.62-verified-apk
+          name: ani-parve-2.63-verified-apk
           path: app/build/outputs/apk/release/app-release.apk
           retention-days: 30
