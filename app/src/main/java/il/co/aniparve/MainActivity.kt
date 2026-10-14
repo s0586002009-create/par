@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity() {
  }
  private fun panel(r:LinearLayout,content:LinearLayout.()->Unit){val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=solid(card,22);elevation=dp(2).toFloat();setPadding(dp(16),dp(14),dp(16),dp(14));content()};r.addView(box,LinearLayout.LayoutParams(-1,-2))}
  private fun chooseTimerType(){
-  if(!p.getBoolean("show_dairy",true)){startDialog("meat");return}
+  if(!p.getBoolean("show_dairy",true)){startDialog(TimerStateTransitions.typeForAdd(false));return}
   val wrap=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;layoutDirection=View.LAYOUT_DIRECTION_LTR;gravity=Gravity.CENTER;setPadding(dp(14),dp(10),dp(14),dp(14))}
   val dairy=food("🧀","חלבי","dairy").apply{minimumHeight=dp(128);setPadding(dp(6),dp(10),dp(6),dp(10))}
   val meat=food("🥩","בשרי","meat").apply{minimumHeight=dp(128);setPadding(dp(6),dp(10),dp(6),dp(10))}
@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
   d.setOnCancelListener{if(widgetOverlay&&!isFinishing)finish()};d.show()
  }
  private fun startDialog(type:String){
- val actualType=if(type=="dairy"&&!p.getBoolean("show_dairy",true))"meat" else type
+ val actualType=TimerStateTransitions.typeForAdd(p.getBoolean("show_dairy",true),type)
  val autoEnabled=p.getBoolean("auto_start",true);val seconds=p.getInt("auto_start_seconds",10).coerceIn(3,30)
  autoStartRunnable?.let{autoStartHandler.removeCallbacks(it)};autoStartRunnable=null;autoStartCancelCallback=null
  var cancelled=false;var armed=false
