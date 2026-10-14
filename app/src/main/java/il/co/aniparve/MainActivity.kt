@@ -350,8 +350,8 @@ private fun peopleAccordion(parent:LinearLayout){
     }
     picker("בשרי ← חלבי",meat){meat=it;save()};if(p.getBoolean("show_dairy",true))picker("חלבי ← בשרי",dairy){dairy=it;save()}
     name.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){if(!s.isNullOrBlank())save()};override fun afterTextChanged(s:Editable?) {}})
+        tile.addView(outlineButton("מחיקת אדם",red){AlertDialog.Builder(this@MainActivity).setTitle("מחיקת אדם").setMessage("למחוק את "+originalName+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->savePeopleAndDefaults(TimerStore.people(this@MainActivity).filterNot{it.name==originalName});opened=TimerStore.people(this@MainActivity).firstOrNull()?.name?:"אני";p.edit().putString("expanded_person",opened).apply();restoreScrollY=scrollHost?.scrollY?:0;refreshSettingsPreservingScroll()}.show()},LinearLayout.LayoutParams(-1,dp(40)))
     tile.addView(primaryButton("שמור"){save();opened="";p.edit().putString("expanded_person","").apply();restoreScrollY=scrollHost?.scrollY?:0;refreshSettingsPreservingScroll()},LinearLayout.LayoutParams(-1,dp(40)).apply{topMargin=dp(5)})
-    tile.addView(outlineButton("מחיקת אדם",red){AlertDialog.Builder(this@MainActivity).setTitle("מחיקת אדם").setMessage("למחוק את "+originalName+"?").setNegativeButton("ביטול",null).setPositiveButton("מחיקה"){_,_->savePeopleAndDefaults(TimerStore.people(this@MainActivity).filterNot{it.name==originalName});opened=TimerStore.people(this@MainActivity).firstOrNull()?.name?:"אני";p.edit().putString("expanded_person",opened).apply();restoreScrollY=scrollHost?.scrollY?:0;refreshSettingsPreservingScroll()}.show()},LinearLayout.LayoutParams(-1,dp(40)))
    }
    wrap.addView(tile,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
   }
