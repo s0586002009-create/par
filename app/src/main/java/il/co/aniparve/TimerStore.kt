@@ -28,7 +28,7 @@ object TimerStore{
  @Synchronized fun remove(c:Context,id:Long){save(c,all(c).filterNot{it.id==id})}
  @Synchronized fun removeActive(c:Context,id:Long):Boolean{val current=all(c);if(current.none{it.id==id&&it.status=="active"})return false;return p(c).edit().putString(LIST,encode(TimerStateTransitions.stopActive(current,id))).commit()}
  @Synchronized fun markExpired(c:Context):List<ParveTimer>{val current=all(c);val now=System.currentTimeMillis();val expired=current.filter{it.status=="active"&&it.endAt<=now};if(expired.isNotEmpty()){val ids=expired.map{it.id}.toSet();save(c,current.map{if(it.id in ids)it.copy(status="pending") else it})};return expired}
- fun pending(c:Context,id:Long):ParveTimer?{val a=all(c);val i=a.indexOfFirst{it.id==id};if(i<0)return null;if(a[i].status=="active"){a[i]=a[i].copy(status="pending");save(c,a)};return a[i]}
+ @Synchronized fun pending(c:Context,id:Long):ParveTimer?{val a=all(c);val i=a.indexOfFirst{it.id==id};if(i<0)return null;if(a[i].status=="active"){a[i]=a[i].copy(status="pending");save(c,a)};return a[i]}
  fun duration(c:Context,type:String):Long{val p=p(c);val k=if(type=="meat")"meat" else "dairy";val h=p.getInt(k+"_h",6).coerceIn(0,6);val m=if(h>=6)0 else p.getInt(k+"_m",0).coerceIn(0,59);return (h*60L+m).coerceIn(1L,360L)*60000L}
  fun people(c:Context):MutableList<ParvePerson>{
   val prefs=p(c);val out=mutableListOf<ParvePerson>()
