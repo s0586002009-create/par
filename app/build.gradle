@@ -9,4 +9,4 @@ android {
 }
 dependencies { implementation 'androidx.appcompat:appcompat:1.7.0'; testImplementation 'junit:junit:4.13.2' }
 // Run the timer-state unit tests as part of every release build.
-tasks.named('assembleRelease') { dependsOn('testReleaseUnitTest') }
+afterEvaluate { tasks.named('assembleRelease') { dependsOn('testReleaseUnitTest') } }
