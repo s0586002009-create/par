@@ -8,7 +8,7 @@
   </LinearLayout>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_active" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:visibility="gone">
-  <TextView android:id="@+id/widget_add" android:layout_width="match_parent" android:layout_height="36dp" android:text="+ הוסף טיימר" android:textColor="@color/widget_text" android:textStyle="bold" android:gravity="center" android:background="@drawable/widget_background"/>
+  <TextView android:id="@+id/widget_add" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="36dp" android:paddingTop="4dp" android:paddingBottom="4dp" android:text="+ הוסף טיימר" android:textColor="@color/widget_text" android:textStyle="bold" android:gravity="center" android:background="@drawable/widget_background"/>
   <ListView android:id="@+id/widget_list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:divider="#55776655" android:dividerHeight="1dp" android:scrollbars="vertical"/>
   <TextView android:id="@+id/widget_list_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="אין טיימרים פעילים" android:visibility="gone" android:gravity="center" android:textColor="@color/widget_text"/>
  </LinearLayout>
