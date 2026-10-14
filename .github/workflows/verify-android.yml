@@ -1,0 +1,45 @@
+name: Verify Android APK
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare signing key and launcher assets
+        run: |
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable app/src/main/res/drawable-nodpi
+          cp signing/ani-parve-release.jks app/ani-parve-release.jks
+          cp signing/ic_launcher_foreground.png app/src/main/res/drawable-nodpi/ic_launcher_foreground.png
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher.jpg
+            cp signing/ic_launcher.jpg app/src/main/res/mipmap-$d/ic_launcher_round.jpg
+          done
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Compile, unit tests and lint
+        env:
+          ANI_PARVE_STORE_PASSWORD: ${{ secrets.ANI_PARVE_STORE_PASSWORD || 'AniParveRelease2026' }}
+          ANI_PARVE_KEY_PASSWORD: ${{ secrets.ANI_PARVE_KEY_PASSWORD || 'AniParveRelease2026' }}
+        run: gradle assembleRelease lintRelease --no-daemon
+      - name: Verify APK archive
+        run: |
+          test -s app/build/outputs/apk/release/app-release.apk
+          unzip -t app/build/outputs/apk/release/app-release.apk
+          sha256sum app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ani-parve-2.61-verified-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
