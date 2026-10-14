@@ -108,9 +108,9 @@ class MainActivity : AppCompatActivity() {
   val meat=food("🥩","בשרי","meat").apply{minimumHeight=dp(128);setPadding(dp(6),dp(10),dp(6),dp(10))}
   wrap.addView(dairy,LinearLayout.LayoutParams(0,dp(150),1f).apply{marginEnd=dp(6)})
   wrap.addView(meat,LinearLayout.LayoutParams(0,dp(150),1f).apply{marginStart=dp(6)})
-  val d=AlertDialog.Builder(this).setTitle("הוספת טיימר").setView(wrap).setNegativeButton("ביטול",null).create()
+  val d=AlertDialog.Builder(this).setTitle("הוספת טיימר").setView(wrap).setNegativeButton("ביטול"){_,_->if(widgetOverlay)finish()}.create()
   dairy.setOnClickListener{d.dismiss();startDialog("dairy")};meat.setOnClickListener{d.dismiss();startDialog("meat")}
-  d.setOnCancelListener{if(widgetOverlay)finish()};d.setOnDismissListener{if(widgetOverlay&&!isFinishing)finish()};d.show()
+  d.setOnCancelListener{if(widgetOverlay&&!isFinishing)finish()};d.show()
  }
  private fun startDialog(type:String){
  val actualType=if(type=="dairy"&&!p.getBoolean("show_dairy",true))"meat" else type
