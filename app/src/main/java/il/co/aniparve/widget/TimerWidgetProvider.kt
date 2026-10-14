@@ -22,7 +22,7 @@ private class TimerWidgetFactory(private val c:Context):RemoteViewsService.Remot
  private var timers:List<ParveTimer> = emptyList()
  override fun onCreate(){load()}
  override fun onDataSetChanged(){load()}
- private fun load(){timers=TimerStore.all(c).filter{it.status=="active"}.sortedBy{it.endAt}}
+ private fun load(){timers=TimerStateTransitions.activeSorted(TimerStore.all(c))}
  override fun onDestroy(){timers=emptyList()}
  override fun getCount()=timers.size
  override fun getViewAt(position:Int):RemoteViews?{
@@ -48,7 +48,7 @@ object WidgetUpdater{
  fun updateAll(c:Context){
   TimerMaintenance.cleanupExpired(c)
   val m=AppWidgetManager.getInstance(c);val ids=m.getAppWidgetIds(ComponentName(c,TimerWidgetProvider::class.java));if(ids.isEmpty()){cancelTick(c);return}
-  val active=TimerStore.all(c).filter{it.status=="active"}.sortedBy{it.endAt}
+  val active=TimerStateTransitions.activeSorted(TimerStore.all(c))
   ids.forEach{id->
    val v=RemoteViews(c.packageName,R.layout.timer_widget)
    v.setViewVisibility(R.id.widget_empty,if(active.isEmpty())android.view.View.VISIBLE else android.view.View.GONE)
