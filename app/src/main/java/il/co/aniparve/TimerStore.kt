@@ -9,7 +9,11 @@ import org.json.JSONObject
 
 data class ParveTimer(val id:Long,val name:String,val type:String,val startAt:Long,val endAt:Long,val duration:Long,val status:String,val ateAt:Long=0L)
 data class ParvePerson(val name:String,val meatWait:Long?=null,val dairyWait:Long?=null)
-object TimerStateTransitions { fun stopActive(list:List<ParveTimer>,id:Long):List<ParveTimer> = list.filterNot{it.id==id&&it.status=="active"} }
+object TimerStateTransitions {
+ fun stopActive(list:List<ParveTimer>,id:Long):List<ParveTimer> = list.filterNot{it.id==id&&it.status=="active"}
+ fun activeSorted(list:List<ParveTimer>):List<ParveTimer> = list.filter{it.status=="active"}.sortedBy{it.endAt}
+ fun typeForAdd(showDairy:Boolean,requestedType:String?=null):String = if(!showDairy) "meat" else if(requestedType=="dairy") "dairy" else "meat"
+}
 object TimerStore{
  private const val LIST="timers_json"
  fun p(c:Context)=c.getSharedPreferences("ani_parve",0)
