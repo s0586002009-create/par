@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 class TimerWidgetProvider:AppWidgetProvider(){
  override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray)=WidgetUpdater.updateAll(c)
  override fun onEnabled(c:Context){super.onEnabled(c);WidgetUpdater.updateAll(c)}
- override fun onRestored(c:Context,m:AppWidgetManager,oldIds:IntArray,newIds:IntArray){super.onRestored(c,m,oldIds,newIds);WidgetUpdater.updateAll(c)}
+ override fun onRestored(c:Context,oldIds:IntArray,newIds:IntArray){super.onRestored(c,oldIds,newIds);WidgetUpdater.updateAll(c)}
  override fun onAppWidgetOptionsChanged(c:Context,m:AppWidgetManager,id:Int,o:Bundle){super.onAppWidgetOptionsChanged(c,m,id,o);WidgetUpdater.updateAll(c)}
  override fun onReceive(c:Context,i:Intent){super.onReceive(c,i);if(i.action==TICK||i.action==Intent.ACTION_TIME_CHANGED||i.action==Intent.ACTION_TIMEZONE_CHANGED||i.action==Intent.ACTION_DATE_CHANGED||i.action==Intent.ACTION_MY_PACKAGE_REPLACED)WidgetUpdater.updateAll(c)}
  companion object{const val TICK="il.co.aniparve.widget.TICK"}
