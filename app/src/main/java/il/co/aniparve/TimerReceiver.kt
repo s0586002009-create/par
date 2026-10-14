@@ -3,7 +3,9 @@ import android.app.*
 import android.content.*
 import android.os.Build
 class TimerReceiver:BroadcastReceiver(){override fun onReceive(c:Context,i:Intent?){val id=i?.getLongExtra("timer_id",0L)?:0L;val t=TimerStore.all(c).firstOrNull{it.id==id}?:return;if(t.status!="active")return;if(t.endAt>System.currentTimeMillis()){TimerScheduler.schedule(c,t);return};val done=TimerStore.pending(c,id)?:return;TimerNotifications.clear(c,id);TimerNotifications.done(c,done);TimerNotifications.refresh(c);il.co.aniparve.widget.WidgetUpdater.updateAll(c)}}
-class BootReceiver:BroadcastReceiver(){override fun onReceive(c:Context,i:Intent?){if(i?.action!=Intent.ACTION_BOOT_COMPLETED&&i?.action!=Intent.ACTION_MY_PACKAGE_REPLACED)return;TimerMaintenance.cleanupExpired(c);TimerStore.all(c).filter{it.status=="active"}.forEach{TimerScheduler.schedule(c,it)};TimerNotifications.refresh(c);try{il.co.aniparve.widget.WidgetUpdater.updateAll(c)}catch(_:Exception){}}}
+class BootReceiver:BroadcastReceiver(){override fun onReceive(c:Context,i:Intent?){val action=i?.action?:return
+  if(action !in setOf(Intent.ACTION_BOOT_COMPLETED,Intent.ACTION_MY_PACKAGE_REPLACED,Intent.ACTION_TIME_CHANGED,Intent.ACTION_TIMEZONE_CHANGED,Intent.ACTION_DATE_CHANGED))return
+  TimerMaintenance.cleanupExpired(c);TimerStore.all(c).filter{it.status=="active"}.forEach{TimerScheduler.schedule(c,it)};TimerNotifications.refresh(c);try{il.co.aniparve.widget.WidgetUpdater.updateAll(c)}catch(_:Exception){}}}
 object TimerScheduler{
  private fun code(id:Long)=(id xor (id ushr 32)).toInt()
  fun schedule(c:Context,t:ParveTimer){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;val f=PendingIntent.FLAG_UPDATE_CURRENT or if(Build.VERSION.SDK_INT>=23)PendingIntent.FLAG_IMMUTABLE else 0;val i=Intent(c,TimerReceiver::class.java).putExtra("timer_id",t.id).setData(android.net.Uri.parse("ani-parve://timer/alarm/"+t.id));val pi=PendingIntent.getBroadcast(c,code(t.id),i,f);try{if(Build.VERSION.SDK_INT>=23)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,t.endAt,pi)else am.setExact(AlarmManager.RTC_WAKEUP,t.endAt,pi)}catch(_:SecurityException){am.set(AlarmManager.RTC_WAKEUP,t.endAt,pi)}}
@@ -14,18 +16,21 @@ class StopActionReceiver:BroadcastReceiver(){
   val action=i?.action?:"";val id=i?.getLongExtra("timer_id",0L)?:0L
   if(action=="open_timer"){c.startActivity(Intent(c,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP).putExtra("show_timers",true));return}
   if(action!="stop_timer"||id==0L)return
-  StopActions.stop(c,id)
+  val pending=goAsync();Thread({try{StopActions.stop(c,id)}finally{pending.finish()}},"ani-parve-stop").start()
  }
 }
 object StopActions{
+ const val ACTION_TIMER_STATE_CHANGED="il.co.aniparve.ACTION_TIMER_STATE_CHANGED"
  @Synchronized fun stop(c:Context,id:Long):Boolean{
   if(id==0L)return false
   val t=TimerStore.all(c).firstOrNull{it.id==id&&it.status=="active"}?:return false
   if(!TimerStore.removeActive(c,id))return false
+  // removeActive commits the new timer list before any alarms or UI are touched.
   try{TimerScheduler.cancel(c,t.id)}catch(_:Exception){}
   try{TimerNotifications.clear(c,t.id)}catch(_:Exception){}
   try{TimerNotifications.refresh(c)}catch(_:Exception){}
   try{il.co.aniparve.widget.WidgetUpdater.updateAll(c)}catch(_:Exception){}
+  try{c.sendBroadcast(Intent(ACTION_TIMER_STATE_CHANGED).setPackage(c.packageName))}catch(_:Exception){}
   return true
  }
 }

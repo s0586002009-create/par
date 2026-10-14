@@ -11,8 +11,10 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 class TimerWidgetProvider:AppWidgetProvider(){
  override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray)=WidgetUpdater.updateAll(c)
+ override fun onEnabled(c:Context){super.onEnabled(c);WidgetUpdater.updateAll(c)}
+ override fun onRestored(c:Context,oldIds:IntArray,newIds:IntArray){super.onRestored(c,oldIds,newIds);WidgetUpdater.updateAll(c)}
  override fun onAppWidgetOptionsChanged(c:Context,m:AppWidgetManager,id:Int,o:Bundle){super.onAppWidgetOptionsChanged(c,m,id,o);WidgetUpdater.updateAll(c)}
- override fun onReceive(c:Context,i:Intent){super.onReceive(c,i);if(i.action==TICK)WidgetUpdater.updateAll(c)}
+ override fun onReceive(c:Context,i:Intent){super.onReceive(c,i);if(i.action==TICK||i.action==Intent.ACTION_TIME_CHANGED||i.action==Intent.ACTION_TIMEZONE_CHANGED||i.action==Intent.ACTION_DATE_CHANGED||i.action==Intent.ACTION_MY_PACKAGE_REPLACED)WidgetUpdater.updateAll(c)}
  companion object{const val TICK="il.co.aniparve.widget.TICK"}
 }
 class TimerWidgetService:RemoteViewsService(){override fun onGetViewFactory(intent:Intent):RemoteViewsFactory=TimerWidgetFactory(applicationContext)}
@@ -20,7 +22,7 @@ private class TimerWidgetFactory(private val c:Context):RemoteViewsService.Remot
  private var timers:List<ParveTimer> = emptyList()
  override fun onCreate(){load()}
  override fun onDataSetChanged(){load()}
- private fun load(){timers=TimerStore.all(c).filter{it.status=="active"}.sortedBy{it.endAt}}
+ private fun load(){timers=TimerStateTransitions.activeSorted(TimerStore.all(c))}
  override fun onDestroy(){timers=emptyList()}
  override fun getCount()=timers.size
  override fun getViewAt(position:Int):RemoteViews?{
@@ -45,8 +47,8 @@ private class TimerWidgetFactory(private val c:Context):RemoteViewsService.Remot
 object WidgetUpdater{
  fun updateAll(c:Context){
   TimerMaintenance.cleanupExpired(c)
-  val m=AppWidgetManager.getInstance(c);val ids=m.getAppWidgetIds(ComponentName(c,TimerWidgetProvider::class.java));if(ids.isEmpty())return
-  val active=TimerStore.all(c).filter{it.status=="active"}.sortedBy{it.endAt}
+  val m=AppWidgetManager.getInstance(c);val ids=m.getAppWidgetIds(ComponentName(c,TimerWidgetProvider::class.java));if(ids.isEmpty()){cancelTick(c);return}
+  val active=TimerStateTransitions.activeSorted(TimerStore.all(c))
   ids.forEach{id->
    val v=RemoteViews(c.packageName,R.layout.timer_widget)
    v.setViewVisibility(R.id.widget_empty,if(active.isEmpty())android.view.View.VISIBLE else android.view.View.GONE)
@@ -57,7 +59,7 @@ object WidgetUpdater{
    v.setOnClickPendingIntent(R.id.widget_open,pi(c,1,null,false));v.setOnClickPendingIntent(R.id.widget_meat,pi(c,2,"meat",false));v.setOnClickPendingIntent(R.id.widget_dairy,pi(c,3,"dairy",false))
    v.setOnClickPendingIntent(R.id.widget_add,pi(c,6,active.firstOrNull()?.type?:"meat",false,true))
    if(active.isNotEmpty()){
-    v.setRemoteAdapter(R.id.widget_list,Intent(c,TimerWidgetService::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,id))
+    v.setRemoteAdapter(R.id.widget_list,Intent(c,TimerWidgetService::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,id).setData(android.net.Uri.parse("ani-parve://widget/list/"+id)))
     val confirm=TimerStore.p(c).getBoolean("stop_confirm_widget",true)
     val target=if(confirm)StopConfirmActivity::class.java else StopActionReceiver::class.java
     val ti=Intent(c,target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -69,7 +71,7 @@ object WidgetUpdater{
    m.updateAppWidget(id,v)
   }
   m.notifyAppWidgetViewDataChanged(ids,R.id.widget_list)
-  if(active.any{Build.VERSION.SDK_INT<24})minuteTick(c) else cancelTick(c)
+  if(active.isNotEmpty())minuteTick(c) else cancelTick(c)
  }
  private fun flags()=PendingIntent.FLAG_UPDATE_CURRENT or if(Build.VERSION.SDK_INT>=23)PendingIntent.FLAG_IMMUTABLE else 0
  private fun templateFlags()=PendingIntent.FLAG_UPDATE_CURRENT or if(Build.VERSION.SDK_INT>=31)PendingIntent.FLAG_MUTABLE else 0
@@ -94,6 +96,6 @@ object WidgetUpdater{
   if(timers)i.putExtra("show_timers",true);i.data=android.net.Uri.parse("ani-parve://widget/action/"+req+"/"+(type?:"none"))
   return PendingIntent.getActivity(c,req,i,flags())
  }
- private fun minuteTick(c:Context){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;val pi=PendingIntent.getBroadcast(c,7001,Intent(c,TimerWidgetProvider::class.java).setAction(TimerWidgetProvider.TICK),flags());try{if(Build.VERSION.SDK_INT>=23)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)else am.setExact(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)}catch(_:SecurityException){am.set(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+60000,pi)}}
+ private fun minuteTick(c:Context){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;val pi=PendingIntent.getBroadcast(c,7001,Intent(c,TimerWidgetProvider::class.java).setAction(TimerWidgetProvider.TICK),flags());try{if(Build.VERSION.SDK_INT>=23)am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+300000,pi)else am.setExact(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+300000,pi)}catch(_:SecurityException){am.set(AlarmManager.RTC_WAKEUP,System.currentTimeMillis()+300000,pi)}}
  private fun cancelTick(c:Context){val am=c.getSystemService(Context.ALARM_SERVICE) as AlarmManager;am.cancel(PendingIntent.getBroadcast(c,7001,Intent(c,TimerWidgetProvider::class.java).setAction(TimerWidgetProvider.TICK),flags()))}
 }

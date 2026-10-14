@@ -9,7 +9,11 @@ import org.json.JSONObject
 
 data class ParveTimer(val id:Long,val name:String,val type:String,val startAt:Long,val endAt:Long,val duration:Long,val status:String,val ateAt:Long=0L)
 data class ParvePerson(val name:String,val meatWait:Long?=null,val dairyWait:Long?=null)
-object TimerStateTransitions { fun stopActive(list:List<ParveTimer>,id:Long):List<ParveTimer> = list.filterNot{it.id==id&&it.status=="active"} }
+object TimerStateTransitions {
+ fun stopActive(list:List<ParveTimer>,id:Long):List<ParveTimer> = list.filterNot{it.id==id&&it.status=="active"}
+ fun activeSorted(list:List<ParveTimer>):List<ParveTimer> = list.filter{it.status=="active"}.sortedBy{it.endAt}
+ fun typeForAdd(showDairy:Boolean,requestedType:String?=null):String = if(!showDairy) "meat" else if(requestedType=="dairy") "dairy" else "meat"
+}
 object TimerStore{
  private const val LIST="timers_json"
  fun p(c:Context)=c.getSharedPreferences("ani_parve",0)
@@ -18,12 +22,13 @@ object TimerStore{
   if(raw==null){val end=prefs.getLong("end",0L);val dur=prefs.getLong("duration",0L);if(end>0&&dur>0){val st=end-dur;val t=ParveTimer(1L,"אני",prefs.getString("food","meat")?:"meat",st,end,dur,if(prefs.getBoolean("finished",false)||end<=System.currentTimeMillis())"pending" else "active",st);save(c,mutableListOf(t));return mutableListOf(t)};prefs.edit().putString(LIST,"[]").apply();return mutableListOf()}
   val out=mutableListOf<ParveTimer>();try{val a=JSONArray(raw);for(i in 0 until a.length()){val o=a.getJSONObject(i);out.add(ParveTimer(o.optLong("id"),o.optString("name","אני"),o.optString("type","meat"),o.optLong("startAt"),o.optLong("endAt"),o.optLong("duration"),o.optString("status","active"),o.optLong("ateAt")))}}catch(_:Exception){};return out
  }
- @Synchronized fun save(c:Context,list:List<ParveTimer>){val a=JSONArray();list.forEach{a.put(JSONObject().put("id",it.id).put("name",it.name).put("type",it.type).put("startAt",it.startAt).put("endAt",it.endAt).put("duration",it.duration).put("status",it.status).put("ateAt",it.ateAt))};p(c).edit().putString(LIST,a.toString()).apply()}
- fun add(c:Context,t:ParveTimer){val a=all(c);a.add(t);save(c,a)}
- fun remove(c:Context,id:Long){save(c,all(c).filterNot{it.id==id})}
- @Synchronized fun removeActive(c:Context,id:Long):Boolean{val current=all(c);if(current.none{it.id==id&&it.status=="active"})return false;save(c,TimerStateTransitions.stopActive(current,id));return true}
+ private fun encode(list:List<ParveTimer>):String{val a=JSONArray();list.forEach{a.put(JSONObject().put("id",it.id).put("name",it.name).put("type",it.type).put("startAt",it.startAt).put("endAt",it.endAt).put("duration",it.duration).put("status",it.status).put("ateAt",it.ateAt))};return a.toString()}
+ @Synchronized fun save(c:Context,list:List<ParveTimer>){p(c).edit().putString(LIST,encode(list)).apply()}
+ @Synchronized fun add(c:Context,t:ParveTimer){val a=all(c);a.add(t);save(c,a)}
+ @Synchronized fun remove(c:Context,id:Long){save(c,all(c).filterNot{it.id==id})}
+ @Synchronized fun removeActive(c:Context,id:Long):Boolean{val current=all(c);if(current.none{it.id==id&&it.status=="active"})return false;return p(c).edit().putString(LIST,encode(TimerStateTransitions.stopActive(current,id))).commit()}
  @Synchronized fun markExpired(c:Context):List<ParveTimer>{val current=all(c);val now=System.currentTimeMillis();val expired=current.filter{it.status=="active"&&it.endAt<=now};if(expired.isNotEmpty()){val ids=expired.map{it.id}.toSet();save(c,current.map{if(it.id in ids)it.copy(status="pending") else it})};return expired}
- fun pending(c:Context,id:Long):ParveTimer?{val a=all(c);val i=a.indexOfFirst{it.id==id};if(i<0)return null;if(a[i].status=="active"){a[i]=a[i].copy(status="pending");save(c,a)};return a[i]}
+ @Synchronized fun pending(c:Context,id:Long):ParveTimer?{val a=all(c);val i=a.indexOfFirst{it.id==id};if(i<0)return null;if(a[i].status=="active"){a[i]=a[i].copy(status="pending");save(c,a)};return a[i]}
  fun duration(c:Context,type:String):Long{val p=p(c);val k=if(type=="meat")"meat" else "dairy";val h=p.getInt(k+"_h",6).coerceIn(0,6);val m=if(h>=6)0 else p.getInt(k+"_m",0).coerceIn(0,59);return (h*60L+m).coerceIn(1L,360L)*60000L}
  fun people(c:Context):MutableList<ParvePerson>{
   val prefs=p(c);val out=mutableListOf<ParvePerson>()
